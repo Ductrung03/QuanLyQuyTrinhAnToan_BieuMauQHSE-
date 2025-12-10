@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<!-- SSMS – Quản lý Khai thác tàu (v3.4.2 • Lọc theo đơn vị) -->
+<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSMS – Quản lý Khai thác tàu (v3.4.2 • Lọc theo đơn vị)</title>
+  <style>
+    :root{
+      --bg:#f8fafc;--panel:#ffffff;--ink:#0f172a;--muted:#64748b;--primary:#0ea5e9;--border:#e2e8f0;--shadow:0 10px 25px rgba(2,6,23,.06);
+      --success:#10b981;--danger:#ef4444;--warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:20}
+    .wrap{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+    h1{font-size:18px;margin:0}
+    .sub{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+
+    .layout{max-width:1280px;margin:16px auto;display:grid;grid-template-columns:260px 1fr;gap:16px;padding:0 16px}
+    aside{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:10px}
+    main{min-height:70vh}
+
+    .nav h3{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:8px 8px}
+    .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;border-radius:10px;color:inherit;text-decoration:none}
+    .nav a:hover{background:#f1f5f9}
+    .nav a.active{background:#e0f2fe;color:#075985}
+
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
+    .panel-body{padding:14px}
+
+    .grid{display:grid;gap:12px}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
+    .card h4{margin:0 0 6px 0}
+
+    .table{width:100%;border-collapse:separate;border-spacing:0}
+    .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:middle}
+    .table th{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+    .table td:last-child{white-space:nowrap}
+
+    .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--primary);color:#fff;border-color:transparent}
+    .btn.success{background:var(--success);color:#fff;border-color:transparent}
+    .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+    .btn.warn{background:var(--warn);color:#fff;border-color:transparent}
+    .btn.ghost{background:#f1f5f9}
+
+    .muted{color:var(--muted)}
+    .toolbar{display:flex;gap:6px;flex-wrap:wrap}
+    .toolbar.nowrap{flex-wrap:nowrap}
+    .chip{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;margin-right:4px}
+
+    dialog{border:none;border-radius:14px;box-shadow:var(--shadow);width:min(900px,96vw)}
+    dialog::backdrop{background:rgba(2,6,23,.35)}
+    .modal-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .modal-body{padding:12px 14px}
+    .modal-foot{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;color:var(--muted)}
+    .field input,.field select,.field textarea{padding:9px 10px;border:1px solid var(--border);border-radius:10px}
+    .note{font-size:12px;color:var(--muted)}
+    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f1f5f9;border:1px solid var(--border);padding:0 6px;border-radius:6px}
+  
+    /* --- Enhanced process tabs styling --- */
+    .tab-head{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px}
+    .tab-btn{appearance:none;border:none;background:transparent;padding:10px 12px;border-radius:10px 10px 0 0;
+             font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+    .tab-btn:hover{background:#f8fafc;color:#0f172a}
+    .tab-btn.active{color:#075985;background:#e0f2fe;border-bottom-color:#0ea5e9}
+  </style>
+</head>
+<body>
+
+  <!-- preload from uploaded JSON (đã bổ sung currentUnit & danh sách đơn vị) -->
+  <script>
+  (function() {
+    try {
+      var raw = "{\n  \"users\": [\n    \"Nguy\\u1ec5n V\\u0103n A\",\n    \"Tr\\u1ea7n Th\\u1ecb B\",\n    \"L\\u00ea V\\u0103n C\",\n    \"Ph\\u1ea1m D\",\n    \"V\\u0169 E\"\n  ],\n  \"units\": [\n    \"T\\u00e0u Petrolimex 15\",\n    \"T\\u00e0u Petrolimex 16\",\n    \"T\\u00e0u Petrolimex 18\",\n    \"T\\u00e0u Petrolimex 21\",\n    \"Ph\\u00f2ng Khai th\\u00e1c\",\n    \"Ph\\u00f2ng K\\u1ef9 thu\\u1eadt\",\n    \"Ph\\u00f2ng An to\\u00e0n/QHSE\",\n    \"Ph\\u00f2ng T\\u00e0i ch\\u00ednh\",\n    \"Ban Gi\\u00e1m \\u0111\\u1ed1c\"\n  ],\n  \"recipients\": [\n    \"Ph\\u00f2ng K\\u1ef9 thu\\u1eadt\",\n    \"Ph\\u00f2ng An to\\u00e0n/QHSE\",\n    \"Ph\\u00f2ng T\\u00e0i ch\\u00ednh\",\n    \"Ban Gi\\u00e1m \\u0111\\u1ed1c\"\n  ],\n  \"currentUser\": \"V\\u0169 E\",\n  \"currentUnit\": \"Ban Gi\\u00e1m \\u0111\\u1ed1c\",\n  \"proc\": [\n    {\n      \"code\": \"OPS-07\",\n      \"name\": \"QUY TR\\u00ccNH QU\\u1ea2N L\\u00dd N\\u01af\\u1edaC D\\u1eb0N BALLAST WATER MANAGEMENT PLAN\",\n      \"version\": \"1.0\",\n      \"state\": \"Draft\",\n      \"author\": \"Ph\\u1ea1m V\\u0103n D\",\n      \"approver\": \"Ban G\\u0110\",\n      \"created\": \"2025-10-29\",\n      \"released\": \"2025-10-29\",\n      \"desc\": \"Quy tr\\u00ecnh n\\u00e0y \\u0111\\u01b0\\u1ee3c x\\u00e2y d\\u1ef1ng nh\\u1eb1m cung c\\u1ea5p h\\u01b0\\u1edbng d\\u1eabn v\\u1ec1 vi\\u1ec7c qu\\u1ea3n l\\u00fd n\\u01b0\\u1edbc d\\u1eb1n tr\\u00ean t\\u00e0u.\\nThis procedure is established to provide guidelines for Ballast water management.\",\n      \"owner\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"7. CH\\u01af\\u01a0NG 7 - QUY TR\\u00ccNH QU\\u1ea2N L\\u00dd N\\u01af\\u1edaC D\\u1eb0N - BALLAST WATER MANAGEMENT PROCEDURE.doc\",\n          \"date\": \"2025-10-29 02:18:55\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-29 02:18:55\",\n          \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n          \"action\": \"Create\",\n          \"detail\": \"Kh\\u1edfi t\\u1ea1o 1.0\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-06\",\n      \"name\": \"H\\u1ec6 TH\\u1ed0NG KH\\u00cd TR\\u01a0  INERT GAS SYSTEM\",\n      \"version\": \"1.0\",\n      \"state\": \"Draft\",\n      \"author\": \"Huy NS\",\n      \"approver\": \"Mr D\\u0169ng\",\n      \"created\": \"2025-10-29\",\n      \"released\": \"2025-10-29\",\n      \"desc\": \"Ph\\u1ea7n n\\u00e0y \\u0111\\u01b0a ra c\\u00e1c \\u0111\\u1ecbnh ngh\\u0129a thu\\u1eadt ng\\u1eef chung, ho\\u1ea1t \\u0111\\u1ed9ng c\\u1ee7a h\\u1ec7 th\\u1ed1ng kh\\u00ed tr\\u01a1 c\\u1ed1 \\u0111\\u1ecbnh, h\\u1ec7 th\\u1ed1ng \\u0111\\u01b0\\u1ee3c s\\u1eed d\\u1ee5ng \\u0111\\u1ec3 duy tr\\u00ec m\\u00f4i tr\\u01b0\\u1eddng kh\\u00f4ng kh\\u00ed an to\\u00e0n trong k\\u00e9t h\\u00e0ng. Bao g\\u1ed3m c\\u00e1c bi\\u1ec7n ph\\u00e1p ph\\u00f2ng ng\\u1eeba \\u0111\\u1ec3 tr\\u00e1nh r\\u1ee7i ro cho s\\u1ee9c kh\\u1ecfe thuy\\u1ec1n vi\\u00ean v\\u00e0 v\\u1eadn h\\u00e0nh m\\u00e1y t\\u1ea1o kh\\u00ed tr\\u01a1.\\nThis section describes, in general terms, the operation of a fixed IG system that is used to maintain a safe atmosphere within a ship's cargo tanks. It also covers the precautions to be taken to avoid health risks associated with operating IG plants. \\nTham kh\\u1ea3o S\\u1ed5 tay khai th\\u00e1c t\\u00e0u, h\\u01b0\\u1edbng d\\u1eabn c\\u1ee7a nh\\u00e0 s\\u1ea3n xu\\u1ea5t v\\u00e0 c\\u00e1c b\\u1ea3n v\\u1ebd s\\u01a1 \\u0111\\u1ed3 l\\u1eafp \\u0111\\u1eb7t, ph\\u00f9 h\\u1ee3p nh\\u1ea5t, xem th\\u00eam chi ti\\u1ebft v\\u1eadn h\\u00e0nh c\\u1ee7a h\\u1ec7 th\\u1ed1ng c\\u1ee5 th\\u1ec3.\\nRefer to the ship's operations manual, the manufacturer's instructions and the installation drawings, as appropriate, for details on the operation of a particular system. \\nV\\u1ec1 l\\u00fd thuy\\u1ebft: Kh\\u00ed hydrocaborn tr\\u00ean t\\u00e0u ch\\u1edf d\\u1ea7u th\\u00e0nh ph\\u1ea9m kh\\u00f4ng th\\u1ec3 ch\\u00e1y trong m\\u00f4i tr\\u01b0\\u1eddng c\\u00f3 h\\u00e0m l\\u01b0\\u1ee3ng oxy nh\\u1ecf h\\u01a1n 11% th\\u1ec3 t\\u00edch. Ph\\u01b0\\u01a1ng ph\\u00e1p ph\\u00f2ng ng\\u1eeba ch\\u00e1y n\\u1ed5 l\\u00e0 duy tr\\u00ec h\\u00e0m l\\u01b0\\u1ee3ng oxy nh\\u1ecf h\\u01a1n 11% th\\u1ec3 t\\u00edch. \\u0110\\u1ec3 th\\u1ef1c hi\\u1ec7n \\u0111\\u01b0\\u1ee3c \\u0111i\\u1ec1u n\\u00e0y, c\\u1ea7n s\\u1eed s\\u1ee5ng h\\u1ec7 th\\u1ed1ng \\u0111\\u01b0\\u1eddng \\u1ed1ng c\\u1ed1 \\u0111\\u1ecbnh cung c\\u1ea5p kh\\u00ed tr\\u01a1 v\\u00e0o t\\u1eebng k\\u00e9t h\\u00e0ng \\u0111\\u1ec3 gi\\u1ea3m h\\u00e0m l\\u01b0\\u1ee3ng kh\\u00ed s\\u1ea1ch xu\\u1ed1ng, nh\\u01b0 gi\\u1ea3m h\\u00e0m l\\u01b0\\u1ee3ng oxy v\\u00e0 t\\u1ea1o ra m\\u00f4i tr\\u01b0\\u1eddng kh\\u00f4ng kh\\u00ed kh\\u00f4ng b\\u1eaft l\\u1eeda.   \\nTheorically: Hydrocarbon gas in petroleum tankers cannot burn in an atmosphere containing less than about 11% oxygen analyser by volume. One way to provide protection against fire or explosion is to keep the oxygen level below 11%. This is usually achieved by using a fixed piping arrangement to blow IG into each cargo tank to reduce the air content, i.e. the oxygen content, and render the tank atmosphere non-flammable.\",\n      \"owner\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"6. CH\\u01af\\u01a0NG 6 - H\\u1ec6 TH\\u1ed0NG KH\\u00cd TR\\u01a0 - INERT GAS SYSTEM 10.04.2024.docx\",\n          \"date\": \"2025-10-29 02:16:37\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-29 02:16:37\",\n          \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n          \"action\": \"Create\",\n          \"detail\": \"Kh\\u1edfi t\\u1ea1o 1.0\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-05\",\n      \"name\": \"V\\u1ec6 SINH K\\u00c9T - TANK CLEANING\",\n      \"version\": \"1.0\",\n      \"state\": \"Draft\",\n      \"author\": \"Huy NS\",\n      \"approver\": \"Mr D\\u0169ng\",\n      \"created\": \"2025-10-29\",\n      \"released\": \"2025-10-29\",\n      \"desc\": \"V\\u1ec7 sinh k\\u00e9t bao g\\u1ed3m R\\u1eeda k\\u00e9t, ch\\u00e2m th\\u00eam kh\\u00ed tr\\u01a1, t\\u1ea9y kh\\u00ed, \\u0111\\u01b0a ng\\u01b0\\u1eddi v\\u00e0o k\\u00e9t l\\u00e0 ph\\u1ea7n c\\u00f4ng vi\\u1ec7c nguy hi\\u1ec3m nh\\u1ea5t trong ho\\u1ea1t \\u0111\\u1ed9ng c\\u1ee7a t\\u00e0u ch\\u1edf d\\u1ea7u. Th\\u01b0\\u1eddng xuy\\u00ean v\\u1ec7 sinh k\\u00e9t v\\u00e0 b\\u01a1m n\\u01b0\\u1edbc d\\u1eb1n g\\u00e2y t\\u1ed1n chi ph\\u00ed v\\u00e0 th\\u1eddi gian. Nh\\u1eefng n\\u1ed7 l\\u1ef1c ph\\u1ea3i \\u0111\\u01b0\\u1ee3c th\\u1ef1c hi\\u1ec7n \\u0111\\u1ec3 \\u0111\\u1ea3m b\\u1ea3o r\\u1eb1ng c\\u00e1c h\\u01b0\\u1edbng d\\u1eabn l\\u00e0 \\u0111\\u1ee7 cho t\\u1ea5t c\\u1ea3 c\\u00e1c m\\u1ee5c \\u0111\\u00edch. \\u0110i\\u1ec1u c\\u1ea7n thi\\u1ebft l\\u00e0 ph\\u1ea3i th\\u1ef1c hi\\u1ec7n c\\u1ea9n th\\u1eadn nh\\u1ea5t c\\u00f3 th\\u1ec3 trong t\\u1ea5t c\\u1ea3 c\\u00e1c ho\\u1ea1t \\u0111\\u1ed9ng li\\u00ean quan \\u0111\\u1ebfn r\\u1eeda k\\u00e9t v\\u00e0 t\\u1ea9y kh\\u00ed. N\\u1ebfu c\\u00f3 b\\u1ea5t k\\u1ef3 l\\u00fd do nghi ng\\u1edd n\\u00e0o li\\u00ean quan \\u0111\\u1ebfn vi\\u1ec7c l\\u1eadp k\\u1ebf ho\\u1ea1ch r\\u1eeda k\\u00e9t v\\u00e0 t\\u1ea9y kh\\u00ed th\\u00ec ph\\u1ea3i li\\u00ean h\\u1ec7 v\\u1edbi C\\u00f4ng ty VIPCO.\\nTank cleaning which includes Tank washing, Purging, Gas freeing, Mopping is the most hazardous part of tanker operations. Frequent tank cleaning and ballast transfers are energy and time consuming. Efforts have been made to ensure that the directions are sufficient for all purposes. It is essential that the greatest possible care is exercised in all operations connected with tank washing and gas freeing. If in connection with planning of tank cleaning and gas freeing or purging operations, there is any reason for doubt, VIPCO shall be contacted.\",\n      \"owner\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"5. CH\\u01af\\u01a0NG 5 - V\\u1ec6 SINH K\\u00c9T - TANK CLEANING 16.12.2024.docx\",\n          \"date\": \"2025-10-29 02:04:17\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-29 02:04:17\",\n          \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n          \"action\": \"Create\",\n          \"detail\": \"Kh\\u1edfi t\\u1ea1o 1.0\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-04\",\n      \"name\": \"H\\u1ec6 TH\\u1ed0NG KI\\u1ec2M SO\\u00c1T H\\u01a0I H\\u00c0NG CARGO VAPOUR EMISSIONS CONTROL - VEC SYSTEMS\",\n      \"version\": \"1.0\",\n      \"state\": \"Draft\",\n      \"author\": \"Huy NS\",\n      \"approver\": \"Mr D\\u0169ng\",\n      \"created\": \"2025-10-29\",\n      \"released\": \"2025-10-29\",\n      \"desc\": \"\\u201cH\\u1ec7 th\\u1ed1ng thu h\\u1ed3i h\\u01a1i\\u201d l\\u00e0 h\\u1ec7 th\\u1ed1ng \\u0111\\u01b0\\u1eddng \\u1ed1ng v\\u00e0 \\u1ed1ng m\\u1ec1m \\u0111\\u01b0\\u1ee3c s\\u1eed d\\u1ee5ng \\u0111\\u1ec3 thu h\\u1ed3i h\\u01a1i tho\\u00e1t ra t\\u1eeb c\\u00e1c k\\u00e9t h\\u00e0ng c\\u1ee7a t\\u00e0u ch\\u1edf d\\u1ea7u v\\u00e0 d\\u1eabn h\\u01a1i \\u0111\\u1ebfn thi\\u1ebft b\\u1ecb x\\u1eed l\\u00fd h\\u01a1i.\\n\\u201cVapour collection system\\u201d means an arrangement of piping and hoses used to collect vapour emitted from a tanker\\u2019s cargo tanks and transport the vapour to a vapour processing unit.\\nC\\u00e1c quy \\u0111\\u1ecbnh v\\u1ec1 h\\u1ec7 th\\u1ed1ng ki\\u1ec3m so\\u00e1t h\\u01a1i ph\\u1ea3i \\u0111\\u01b0\\u1ee3c tu\\u00e2n th\\u1ee7 m\\u1ecdi l\\u00fac m\\u1ecdi n\\u01a1i n\\u1ebfu \\u00e1p d\\u1ee5ng.\\nVapour emission control system regulations are to be followed where and when applicable.\",\n      \"owner\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"4. CH\\u01af\\u01a0NG 4 - H\\u1ec6 TH\\u1ed0NG KI\\u1ec2M SO\\u00c1T H\\u01a0I H\\u00c0NG - VEC SYSTEM Updated 04.01.2023 --.docx\",\n          \"date\": \"2025-10-29 01:54:45\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-29 01:54:45\",\n          \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n          \"action\": \"Create\",\n          \"detail\": \"Kh\\u1edfi t\\u1ea1o 1.0\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-01\",\n      \"name\": \"V\\u1eacN \\u0110\\u01a0N - BILL OF LADDING\",\n      \"owner\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"state\": \"Approved\",\n      \"version\": \"1.0\",\n      \"author\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"approver\": \"QMR: V\\u0169 E\",\n      \"created\": \"2025-01-05\",\n      \"released\": \"2025-01-10\",\n      \"desc\": \"Quy \\u0111\\u1ecbnh r\\u00f5 quy tr\\u00ecnh ki\\u1ec3m tra v\\u00e0 k\\u00fd ph\\u00e1t V\\u1eadn \\u0111\\u01a1n.\\nTo clearly define the procedure for checking and signing Bills of Lading.\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"OPS-01_KeHoachChuyen_v1.0.pdf\",\n          \"date\": \"2025-01-10 09:00\"\n        },\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"1. CH\\u01af\\u01a0NG 1 - V\\u1eacN \\u0110\\u01a0N - BILL OF LADING.doc\",\n          \"date\": \"2025-10-28 13:49:25\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-28 13:49:25\",\n          \"user\": \"V\\u0169 E\",\n          \"action\": \"Edit\",\n          \"detail\": \"C\\u1eadp nh\\u1eadt th\\u00f4ng tin chung\"\n        },\n        {\n          \"time\": \"2025-10-28 13:47:33\",\n          \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n          \"action\": \"Approve\",\n          \"detail\": \"QMR duy\\u1ec7t 1.0\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-02\",\n      \"name\": \"H\\u1ee2P \\u0110\\u1ed2NG V\\u1eacN T\\u1ea2I - CHARTER PARTY\",\n      \"owner\": \"Tr\\u1ea7n Th\\u1ecb B\",\n      \"state\": \"Draft\",\n      \"version\": \"0.8\",\n      \"author\": \"Tr\\u1ea7n Th\\u1ecb B\",\n      \"approver\": \"\",\n      \"created\": \"2025-02-01\",\n      \"released\": \"\",\n      \"desc\": \"Quy \\u0111\\u1ecbnh h\\u01b0\\u1edbng d\\u1eabn c\\u1ee5 th\\u1ec3 \\u0111\\u1ed1i v\\u1edbi t\\u00e0u bi\\u1ec3n cho thu\\u00ea.\\nTo specify guidelines for vessels on charter.\",\n      \"docs\": [\n        {\n          \"ver\": \"0.8\",\n          \"file\": \"OPS-02_BanGiaoCa_v0.8.docx\",\n          \"date\": \"2025-02-03 08:00\"\n        },\n        {\n          \"ver\": \"0.8\",\n          \"file\": \"2. CH\\u01af\\u01a0NG 2 - H\\u1ee2P \\u0110\\u1ed2NG V\\u1eacN T\\u1ea2I.doc\",\n          \"date\": \"2025-10-28 14:04:16\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-28 14:04:16\",\n          \"user\": \"V\\u0169 E\",\n          \"action\": \"Edit\",\n          \"detail\": \"C\\u1eadp nh\\u1eadt th\\u00f4ng tin chung\"\n        },\n        {\n          \"time\": \"2025-10-28 13:47:33\",\n          \"user\": \"Tr\\u1ea7n Th\\u1ecb B\",\n          \"action\": \"Create\",\n          \"detail\": \"Kh\\u1edfi t\\u1ea1o b\\u1ea3n nh\\u00e1p\"\n        }\n      ]\n    },\n    {\n      \"code\": \"OPS-03\",\n      \"name\": \"QUY TR\\u00ccNH L\\u00c0M H\\u00c0NG - CARGO OPERATION PROCEDURE\",\n      \"owner\": \"L\\u00ea V\\u0103n C\",\n      \"state\": \"Submitted\",\n      \"version\": \"1.0\",\n      \"author\": \"Ph\\u1ea1m D\",\n      \"approver\": \"QMR: V\\u0169 E\",\n      \"created\": \"2025-03-10\",\n      \"released\": \"2025-03-16\",\n      \"desc\": \"M\\u1ee5c \\u0111\\u00edch c\\u1ee7a quy tr\\u00ecnh n\\u00e0y l\\u00e0 \\u0111\\u1ec3 \\u0111\\u1ea3m b\\u1ea3o vi\\u1ec7c ki\\u1ec3m so\\u00e1t c\\u00e1c ho\\u1ea1t \\u0111\\u1ed9ng c\\u1ee7a t\\u00e0u v\\u00e0 n\\u00e2ng cao an to\\u00e0n trong c\\u00f4ng vi\\u1ec7c l\\u00e0m h\\u00e0ng v\\u00e0 ng\\u0103n ng\\u1eeba ng\\u1eeba \\u00f4 nhi\\u1ec5m.\\nThis procedure is established to ensure safety and prevent pollution during loading and discharging.\",\n      \"docs\": [\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"OPS-03_TiepNhanNhienLieu_v1.0.pdf\",\n          \"date\": \"2025-03-16 10:20\"\n        },\n        {\n          \"ver\": \"1.0\",\n          \"file\": \"01 T\\u1ed4NG QUAN - GENERAL.docx\",\n          \"date\": \"2025-10-28 14:05:56\"\n        }\n      ],\n      \"changes\": [\n        {\n          \"time\": \"2025-10-28 14:05:56\",\n          \"user\": \"V\\u0169 E\",\n          \"action\": \"Edit\",\n          \"detail\": \"C\\u1eadp nh\\u1eadt th\\u00f4ng tin chung\"\n        },\n        {\n          \"time\": \"2025-10-28 13:47:33\",\n          \"user\": \"L\\u00ea V\\u0103n C\",\n          \"action\": \"Submit\",\n          \"detail\": \"Tr\\u00ecnh duy\\u1ec7t 1.0\"\n        }\n      ]\n    }\n  ],\n  \"tpl\": [\n    {\n      \"id\": \"T1\",\n      \"proc\": \"OPS-01\",\n      \"no\": \"FM-OPS-01\",\n      \"name\": \"K\\u1ebf ho\\u1ea1ch chuy\\u1ebfn (Form)\",\n      \"type\": \"Form\",\n      \"state\": \"Approved\",\n      \"file\": \"FM-OPS-01.docx\"\n    },\n    {\n      \"id\": \"T2\",\n      \"proc\": \"OPS-01\",\n      \"no\": \"CL-OPS-01\",\n      \"name\": \"Checklist tr\\u01b0\\u1edbc kh\\u1edfi h\\u00e0nh\",\n      \"type\": \"Checklist\",\n      \"state\": \"Submitted\",\n      \"file\": \"CL-OPS-01.xlsx\"\n    },\n    {\n      \"id\": \"Tzpad\",\n      \"proc\": \"OPS-03\",\n      \"no\": \"\",\n      \"name\": \"Bi\\u00ean b\\u1ea3n m\\u1eabu h\\u00e0ng - Cargo sample record\",\n      \"type\": \"Form\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 03-05-02 CARGO SAMPLE RECORD.doc\"\n    },\n    {\n      \"id\": \"Tzkav\",\n      \"proc\": \"OPS-03\",\n      \"no\": \"\",\n      \"name\": \"Bi\\u00ean b\\u1ea3n ki\\u1ec3m tra van h\\u00e0ng theo qu\\u00fd - Quarterly Record of Cargo valves inspection\",\n      \"type\": \"Form\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 03-06-01A RECORD OF CARGO VALVES INSPECTION.doc\"\n    },\n    {\n      \"id\": \"T6ihr\",\n      \"proc\": \"OPS-05\",\n      \"no\": \"SOF 05-04-01\",\n      \"name\": \"SOF 05-04-01 TANK PREPARATION PLAN\",\n      \"type\": \"Checklist\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 05-04-01 TANK PREPARATION PLAN.xls\"\n    },\n    {\n      \"id\": \"Ts3ks\",\n      \"proc\": \"OPS-05\",\n      \"no\": \"SOF 05-04-02\",\n      \"name\": \"SOF 05-04-02 K\\u1ebe HO\\u1ea0CH R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING PLAN\",\n      \"type\": \"Form\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 05-04-02 K\\u1ebe HO\\u1ea0CH R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING PLAN.docx\"\n    },\n    {\n      \"id\": \"T52uw\",\n      \"proc\": \"OPS-05\",\n      \"no\": \"SOF 05-04-03 DMKT\",\n      \"name\": \"R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING CHECKLIST\",\n      \"type\": \"Form\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 05-04-03 DMKT R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING CHECKLIST.doc\"\n    },\n    {\n      \"id\": \"Tooqe\",\n      \"proc\": \"OPS-05\",\n      \"no\": \"SOF 05-04-12\",\n      \"name\": \"DISCHARGE OF SLOP VOLUMES\",\n      \"type\": \"Form\",\n      \"state\": \"Draft\",\n      \"file\": \"SOF 03-18-12 CARGO MANIFEST.doc\"\n    }\n  ],\n  \"subs\": [\n    {\n      \"id\": \"SUB-4YGHSE\",\n      \"proc\": \"OPS-03\",\n      \"tplNo\": \"\",\n      \"tplName\": \"Bi\\u00ean b\\u1ea3n ki\\u1ec3m tra van h\\u00e0ng theo qu\\u00fd - Quarterly Record of Cargo valves inspection\",\n      \"unit\": \"T\\u00e0u Petrolimex 15\",\n      \"sender\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"recipients\": [\n        \"Ban Gi\\u00e1m \\u0111\\u1ed1c\"\n      ],\n      \"date\": \"2025-10-29 02:11:24\",\n      \"due\": \"2025-10-29\",\n      \"state\": \"Submitted\",\n      \"files\": [\n        \"SOF 03-06-01A RECORD OF CARGO VALVES INSPECTION.doc\"\n      ],\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"SUB-BUNDI4\",\n      \"proc\": \"OPS-01\",\n      \"tplNo\": \"FM-OPS-01\",\n      \"tplName\": \"K\\u1ebf ho\\u1ea1ch chuy\\u1ebfn (Form)\",\n      \"unit\": \"T\\u00e0u Petrolimex 15\",\n      \"sender\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"recipients\": [\n        \"Ph\\u00f2ng K\\u1ef9 thu\\u1eadt\",\n        \"Ph\\u00f2ng An to\\u00e0n/QHSE\"\n      ],\n      \"date\": \"2025-03-21 10:00\",\n      \"due\": \"2025-03-25\",\n      \"state\": \"Submitted\",\n      \"files\": [\n        \"KeHoachChuyen_PLX15_202503.docx\"\n      ],\n      \"note\": \"Chuy\\u1ebfn 03/2025\"\n    }\n  ],\n  \"appr\": [\n    {\n      \"id\": \"APR-SUB-4YGHSE\",\n      \"subId\": \"SUB-4YGHSE\",\n      \"kind\": \"Bi\\u1ec3u m\\u1eabu \\u0111\\u00e3 n\\u1ed9p\",\n      \"name\": \"Bi\\u00ean b\\u1ea3n ki\\u1ec3m tra van h\\u00e0ng theo qu\\u00fd - Quarterly Record of Cargo valves inspection\",\n      \"related\": \"OPS-03\",\n      \"sender\": \"T\\u00e0u Petrolimex 15\",\n      \"date\": \"2025-10-29 02:11:24\",\n      \"state\": \"Submitted\"\n    },\n    {\n      \"id\": \"APR-SUB-BUNDI4\",\n      \"subId\": \"SUB-BUNDI4\",\n      \"kind\": \"Bi\\u1ec3u m\\u1eabu \\u0111\\u00e3 n\\u1ed9p\",\n      \"name\": \"K\\u1ebf ho\\u1ea1ch chuy\\u1ebfn (Form)\",\n      \"related\": \"OPS-01\",\n      \"sender\": \"T\\u00e0u Petrolimex 15\",\n      \"date\": \"2025-03-21 10:00\",\n      \"state\": \"Submitted\"\n    }\n  ],\n  \"log\": [\n    {\n      \"time\": \"2025-10-29 02:18:55\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Create\",\n      \"target\": \"OPS-07\",\n      \"detail\": \"QUY TR\\u00ccNH QU\\u1ea2N L\\u00dd N\\u01af\\u1edaC D\\u1eb0N BALLAST WATER MANAGEMENT PLAN\"\n    },\n    {\n      \"time\": \"2025-10-29 02:16:37\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Create\",\n      \"target\": \"OPS-06\",\n      \"detail\": \"H\\u1ec6 TH\\u1ed0NG KH\\u00cd TR\\u01a0  INERT GAS SYSTEM\"\n    },\n    {\n      \"time\": \"2025-10-29 02:11:24\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Submit form\",\n      \"target\": \"Bi\\u00ean b\\u1ea3n ki\\u1ec3m tra van h\\u00e0ng theo qu\\u00fd - Quarterly Record of Cargo valves inspection\",\n      \"detail\": \"SUB-4YGHSE\"\n    },\n    {\n      \"time\": \"2025-10-29 02:10:01\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"DISCHARGE OF SLOP VOLUMES\"\n    },\n    {\n      \"time\": \"2025-10-29 02:08:16\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Edit template\",\n      \"target\": \"SOF 05-04-01 TANK PREPARATION PLAN\"\n    },\n    {\n      \"time\": \"2025-10-29 02:08:04\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING CHECKLIST\"\n    },\n    {\n      \"time\": \"2025-10-29 02:07:13\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"SOF 05-04-02 K\\u1ebe HO\\u1ea0CH R\\u1eecA K\\u00c9T H\\u00c0NG - TANK CLEANING PLAN\"\n    },\n    {\n      \"time\": \"2025-10-29 02:06:13\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"SOF 05-04-01 TANK PREPARATION PLAN\"\n    },\n    {\n      \"time\": \"2025-10-29 02:04:17\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Create\",\n      \"target\": \"OPS-05\",\n      \"detail\": \"V\\u1ec6 SINH K\\u00c9T - TANK CLEANING\"\n    },\n    {\n      \"time\": \"2025-10-29 01:54:45\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Create\",\n      \"target\": \"OPS-04\",\n      \"detail\": \"H\\u1ec6 TH\\u1ed0NG KI\\u1ec2M SO\\u00c1T H\\u01a0I H\\u00c0NG CARGO VAPOUR EMISSIONS CONTROL - VEC SYSTEMS\"\n    },\n    {\n      \"time\": \"2025-10-28 14:32:46\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"Bi\\u00ean b\\u1ea3n ki\\u1ec3m tra van h\\u00e0ng theo qu\\u00fd - Quarterly Record of Cargo valves inspection\"\n    },\n    {\n      \"time\": \"2025-10-28 14:26:31\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Add template\",\n      \"target\": \"Bi\\u00ean b\\u1ea3n m\\u1eabu h\\u00e0ng - Cargo sample record\"\n    },\n    {\n      \"time\": \"2025-10-28 14:24:52\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Delete template\",\n      \"target\": \"BDN Form\"\n    },\n    {\n      \"time\": \"2025-10-28 14:05:56\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Edit\",\n      \"target\": \"OPS-03\",\n      \"detail\": \"Th\\u00f4ng tin chung\"\n    },\n    {\n      \"time\": \"2025-10-28 14:04:16\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Edit\",\n      \"target\": \"OPS-02\",\n      \"detail\": \"Th\\u00f4ng tin chung\"\n    },\n    {\n      \"time\": \"2025-10-28 13:49:25\",\n      \"user\": \"V\\u0169 E\",\n      \"action\": \"Edit\",\n      \"target\": \"OPS-01\",\n      \"detail\": \"Th\\u00f4ng tin chung\"\n    },\n    {\n      \"time\": \"2025-10-28 13:47:33\",\n      \"user\": \"Nguy\\u1ec5n V\\u0103n A\",\n      \"action\": \"Init\",\n      \"target\": \"Demo\",\n      \"detail\": \"Kh\\u1edfi t\\u1ea1o d\\u1eef li\\u1ec7u\"\n    }\n  ]\n}";
+      var ts  = new Date().toISOString().slice(0,19).replace('T',' ');
+      localStorage.setItem('SSMS_OPS_DATA_v1', raw);
+      localStorage.setItem('SSMS_OPS_DATA_v1_SAVED_AT', ts);
+      console.log('[SSMS preload] JSON injected, saved at', ts);
+    } catch(e) { console.error('[SSMS preload] failed:', e); }
+  })();
+  </script>
+
+  <header>
+    <div class="wrap">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#60a5fa)"></div>
+      <div>
+        <h1>SSMS – Modul Quản lý Khai thác tàu</h1>
+        <div class="sub">
+          <span>Bản v3.4.2: Lưu cục bộ, Xuất/nhập JSON, Reset demo, <b>lọc theo đơn vị</b>.</span>
+          <span>• Đơn vị đang xem:</span>
+          <select id="selCurrentUnit" style="padding:2px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;min-width:180px"></select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <nav class="nav" id="leftNav">
+        <h3>Chức năng</h3>
+        <a href="javascript:void(0)" data-view="dashboard" class="">📊 Dashboard</a>
+        <a href="javascript:void(0)" data-view="process" class="active">📚 Quy trình</a>
+        <a href="javascript:void(0)" data-view="templates" class="">🧾 Biểu mẫu</a>
+        <a href="javascript:void(0)" data-view="approvals" class="">✅ Phê duyệt</a>
+        <a href="javascript:void(0)" data-view="audit" class="">🕒 Nhật ký</a>
+        <a href="javascript:void(0)" data-view="settings" class="">⚙️ Cài đặt</a>
+      </nav>
+    </aside>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="panel" hidden="">
+        <div class="panel-head"><h2>📊 Dashboard</h2></div>
+        <div class="panel-body grid cols-3">
+          <div class="card"><h4>Tổng số Quy trình</h4><div id="kpiProc" style="font-size:28px;font-weight:800">5</div><div class="muted">đang quản lý</div></div>
+          <div class="card"><h4>Tổng số Biểu mẫu</h4><div id="kpiTpl" style="font-size:28px;font-weight:800">8</div><div class="muted">form &amp; checklist</div></div>
+          <div class="card"><h4>Hàng chờ Phê duyệt (đơn vị hiện tại)</h4><div id="kpiAppr" style="font-size:28px;font-weight:800">2</div><div class="muted">mục cần xử lý</div></div>
+          <div class="card" style="grid-column:1/-1">
+            <h4>Hoạt động gần đây</h4>
+            <table class="table" id="tblRecent"><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Đối tượng</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUY TRÌNH -->
+      <section id="view-process" class="panel">
+        <div class="panel-head"><h2>📚 Quy trình</h2>
+          <div class="toolbar">
+            <input id="qProc" placeholder="Tìm mã quy trình / tên quy trình / mẫu" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;min-width:280px">
+            <button class="btn" id="btnSearchProc">Tìm</button>
+            <button class="btn primary" id="btnNewProc">＋ New</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="tabs">
+            <div class="tab-head">
+              <button class="tab-btn active" data-tab="proc-list">Danh sách quy trình</button>
+              <button class="tab-btn" data-tab="proc-info">Thông tin chung</button>
+              <button class="tab-btn" data-tab="proc-templates">Danh sách mẫu</button>
+              <button class="tab-btn" data-tab="proc-changelog">Nhật ký thay đổi</button>
+            </div>
+            <div class="tab-body">
+              <div class="tab-pane" id="tab-proc-list">
+                <table class="table" id="tblProc"><thead><tr><th>Ký hiệu</th><th>Tên quy trình</th><th>Chủ trì</th><th>Trạng thái</th></tr></thead><tbody></tbody></table>
+                <div class="muted" id="procListHint" style="margin-top:8px">Nhấn vào một dòng để chọn quy trình và chuyển sang các tab bên cạnh.</div>
+              </div>
+              <div class="tab-pane" id="tab-proc-info" hidden="">
+                <div class="card">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <h4>Thông tin quy trình</h4>
+                    <div class="toolbar">
+                      <button class="btn" id="btnDownloadDoc">⬇️ Tải tài liệu</button>
+                      <button class="btn primary" id="btnEditProc">✎ Edit</button>
+                    </div>
+                  </div>
+                  <div id="procInfo">Chưa chọn quy trình.</div>
+                </div>
+              </div>
+              <div class="tab-pane" id="tab-proc-templates" hidden="">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <h4 style="margin:0">Danh sách mẫu</h4>
+                  <div class="toolbar">
+                    <button class="btn primary" id="btnAddTpl">＋ Thêm biểu mẫu</button>
+                  </div>
+                </div>
+                <table class="table" id="tblProcTpl"><thead><tr><th>Số</th><th>Số hiệu</th><th>Tên mẫu</th><th>Loại</th><th>File</th><th>Trạng thái</th><th></th></tr></thead><tbody></tbody></table>
+              </div>
+              <div class="tab-pane" id="tab-proc-changelog" hidden="">
+                <table class="table" id="tblProcChange"><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Chi tiết</th></tr></thead><tbody></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BIỂU MẪU (Nộp & duyệt) -->
+      <section id="view-templates" class="panel" hidden="">
+        <div class="panel-head"><h2>🧾 Biểu mẫu – Nộp &amp; gửi duyệt</h2>
+          <div class="toolbar">
+            <select id="fltProc"><option value="">-- Quy trình --</option></select>
+            <select id="fltState"><option value="">-- Trạng thái --</option><option>Draft</option><option>Submitted</option><option>Under Review</option><option>Approved</option><option>Rejected</option></select>
+            <button class="btn" id="btnFilter">Lọc</button>
+            <button class="btn primary" id="btnNewSubmit">＋ Nộp biểu mẫu</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <table class="table" id="tblSubs">
+            <thead><tr>
+              <th>ID</th><th>Quy trình</th><th>Mẫu số</th><th>Tên mẫu</th><th>Đơn vị gửi</th><th>Người gửi</th><th>Người nhận</th><th>Ngày gửi</th><th>Hạn xử lý</th><th>Trạng thái</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="muted" style="margin-top:8px">Mô tả: Từ tab <em>Quy trình → Danh sách mẫu</em> tải file mẫu về, điền Word/Excel, sau đó vào đây để <strong>Nộp biểu mẫu</strong> và gửi đến phòng ban/ lãnh đạo duyệt.</div>
+        </div>
+      </section>
+
+      <!-- PHÊ DUYỆT -->
+      <section id="view-approvals" class="panel" hidden="">
+        <div class="panel-head"><h2>✅ Phê duyệt</h2></div>
+        <div class="panel-body">
+          <table class="table" id="tblAppr">
+            <thead><tr>
+              <th>ID</th><th>Loại</th><th>Tên</th><th>Quy trình</th><th>Người gửi</th><th>Ngày gửi</th><th>Trạng thái</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="muted" style="margin-top:8px">Chọn <b>Xem</b> để mở biểu mẫu đã nộp, sau đó <b>Phê duyệt</b> hoặc <b>Từ chối</b> (kèm nhận xét).</div>
+        </div>
+      </section>
+
+      <!-- NHẬT KÝ -->
+      <section id="view-audit" class="panel" hidden="">
+        <div class="panel-head"><h2>🕒 Nhật ký</h2></div>
+        <div class="panel-body">
+          <table class="table" id="tblLog"><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+
+      <!-- CÀI ĐẶT -->
+      <section id="view-settings" class="panel" hidden="">
+        <div class="panel-head"><h2>⚙️ Cài đặt &amp; Sao lưu</h2></div>
+        <div class="panel-body grid">
+          <div class="card">
+            <h4>Lưu cục bộ (localStorage)</h4>
+            <p class="note">Mọi thay đổi sẽ tự động lưu sau mỗi thao tác.</p>
+            <div class="toolbar">
+              <button class="btn" id="btnSaveNow">💾 Lưu ngay</button>
+              <button class="btn" id="btnExport">⬇️ Xuất JSON</button>
+              <button class="btn" id="btnImport">⬆️ Nhập JSON</button>
+              <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+              <button class="btn danger" id="btnReset">🗑️ Xóa dữ liệu &amp; nạp Demo</button>
+            </div>
+            <p class="note" id="storeStat">Trạng thái: ...</p>
+            <ul class="note">
+              <li>Dữ liệu lưu tại trình duyệt của bạn (<span class="kbd">localStorage</span>), không gửi lên server.</li>
+              <li>Dùng <b>Xuất JSON</b> để tạo file sao lưu/di chuyển máy.</li>
+              <li>Nếu muốn “sạch” như mới cài, dùng <b>Xóa dữ liệu &amp; nạp Demo</b>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- (giữ nguyên các dialog, chỉ sửa JS) -->
+  <dialog id="modalProc">
+    <div class="modal-head"><strong id="modalProcTitle">✎ Sửa quy trình</strong><button class="btn" onclick="closeModal('modalProc')">Đóng</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Ký hiệu</label><input id="fCode" placeholder="OPS-01" disabled=""></div>
+        <div class="field"><label>Tên quy trình</label><input id="fName" placeholder="Lập kế hoạch chuyến"></div>
+        <div class="field"><label>Phiên bản hiện tại</label><input id="fVersion" placeholder="1.0"></div>
+        <div class="field"><label>Trạng thái</label>
+          <select id="fState"><option>Draft</option><option>In Progress</option><option>Submitted</option><option>Approved</option><option>Rejected</option><option>Archived</option></select>
+        </div>
+        <div class="field"><label>Người lập</label><input id="fAuthor" placeholder="Nguyễn Văn A"></div>
+        <div class="field"><label>Người duyệt</label><input id="fApprover" placeholder="QMR: Vũ E"></div>
+        <div class="field"><label>Ngày lập</label><input id="fCreated" type="date"></div>
+        <div class="field"><label>Ngày phát hành</label><input id="fReleased" type="date"></div>
+        <div class="field" style="grid-column:1/-1"><label>Tài liệu đính kèm (PDF/DOCX) — chọn nhiều</label><input id="fDocs" type="file" multiple accept=".pdf,.doc,.docx"></div>
+        <div class="field" style="grid-column:1/-1"><label>Mô tả</label><textarea id="fDesc" rows="3" placeholder="Mục đích, phạm vi..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalProc')">Hủy</button>
+      <button class="btn success" id="btnSaveProc">Lưu</button>
+    </div>
+  </dialog>
+
+  <dialog id="modalTpl">
+    <div class="modal-head"><strong id="modalTplTitle">＋ Biểu mẫu</strong><button class="btn" onclick="closeModal('modalTpl')">Đóng</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Số hiệu (No.)</label><input id="tNo" placeholder="FM-OPS-01"></div>
+        <div class="field"><label>Tên mẫu</label><input id="tName" placeholder="Kế hoạch chuyến (Form)"></div>
+        <div class="field"><label>Loại</label>
+          <select id="tType"><option>Form</option><option>Checklist</option></select>
+        </div>
+        <div class="field"><label>Trạng thái</label>
+          <select id="tState"><option>Draft</option><option>In Progress</option><option>Submitted</option><option>Approved</option><option>Rejected</option><option>Archived</option></select>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>File đính kèm (DOCX/XLSX/PDF)</label><input id="tFile" type="file" accept=".doc,.docx,.xlsx,.xls,.pdf"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalTpl')">Hủy</button>
+      <button class="btn success" id="btnSaveTpl">Lưu</button>
+    </div>
+  </dialog>
+
+  <dialog id="modalSubmit">
+    <div class="modal-head"><strong>＋ Nộp biểu mẫu</strong><button class="btn" onclick="closeModal('modalSubmit')">Đóng</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Quy trình</label><select id="sProc"></select></div>
+        <div class="field"><label>Chọn mẫu (từ quy trình)</label><select id="sTpl"></select></div>
+        <div class="field"><label>Đơn vị gửi</label><select id="sUnit"></select></div>
+        <div class="field"><label>Người gửi</label><input id="sSender" placeholder="Nguyễn Văn A"></div>
+        <div class="field" style="grid-column:1/-1"><label>Người nhận (chọn nhiều)</label><div id="sRecipients" class="toolbar"></div></div>
+        <div class="field"><label>Hạn xử lý</label><input id="sDue" type="date"></div>
+        <div class="field"><label>Trạng thái</label><input value="Draft" id="sState" disabled=""></div>
+        <div class="field" style="grid-column:1/-1"><label>Tệp đã điền (DOCX/XLSX/PDF, chọn nhiều)</label><input id="sFiles" type="file" multiple="" accept=".doc,.docx,.xlsx,.xls,.pdf"></div>
+        <div class="field" style="grid-column:1/-1"><label>Ghi chú</label><textarea id="sNote" rows="3" placeholder="Thông điệp gửi người duyệt..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalSubmit')">Hủy</button>
+      <button class="btn warn" id="btnSaveDraft">Lưu nháp</button>
+      <button class="btn success" id="btnSubmitSend">Nộp &amp; gửi duyệt</button>
+    </div>
+  </dialog>
+
+  <dialog id="modalAppr">
+    <div class="modal-head"><strong>Phê duyệt biểu mẫu</strong><button class="btn" onclick="closeModal('modalAppr')">Đóng</button></div>
+    <div class="modal-body" id="apprDetail"></div>
+    <div class="modal-foot">
+      <textarea id="apprComment" rows="2" placeholder="Nhận xét (tùy chọn)" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:8px"></textarea>
+      <button class="btn danger" id="btnReject">Từ chối</button>
+      <button class="btn success" id="btnApprove">Phê duyệt</button>
+    </div>
+  </dialog>
+
+  <div id="toast" style="position:fixed;right:16px;bottom:16px;display:grid;gap:8px"></div>
+
+  <script>
+  // ======= Utils =======
+  const now = () => new Date().toISOString().slice(0,19).replace('T',' ');
+  const qs  = sel => document.querySelector(sel);
+  const qsa = sel => Array.from(document.querySelectorAll(sel));
+  function toast(msg){
+    const t=document.createElement('div');
+    t.textContent=msg;
+    t.style.background='#111827';
+    t.style.color='#f8fafc';
+    t.style.padding='8px 12px';
+    t.style.borderRadius='10px';
+    t.style.boxShadow='var(--shadow)';
+    qs('#toast').appendChild(t);
+    setTimeout(()=>t.remove(),2800);
+  }
+  function go(view){
+    qsa('main > section').forEach(s=>s.hidden=true);
+    qs('#view-'+view).hidden=false;
+    qsa('aside a[data-view]').forEach(a=> a.classList.toggle('active', a.dataset.view===view));
+    localStorage.setItem('SSMS_OPS_LASTVIEW', view);
+  }
+  function openModal(id){qs('#'+id).showModal()}
+  function closeModal(id){qs('#'+id).close()}
+  function blobUrlFor(name){ const blob=new Blob([`SSMS demo file: ${name} – ${now()}`],{type:'text/plain'}); return URL.createObjectURL(blob); }
+  function openDummy(filename){ const url = blobUrlFor(filename); window.open(url, '_blank'); setTimeout(()=>URL.revokeObjectURL(url), 2000); }
+  function downloadDummy(filename){ const url = blobUrlFor(filename); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url),2000); }
+
+  // ======= Storage =======
+  const STORE_KEY = 'SSMS_OPS_DATA_v1';
+  let demo = null; // data object
+
+  function getDemoSeed(){
+    const U = ['Nguyễn Văn A','Trần Thị B','Lê Văn C','Phạm D','Vũ E'];
+    return {
+      users: U,
+      units: [
+        'Tàu Petrolimex 15',
+        'Tàu Petrolimex 16',
+        'Tàu Petrolimex 18',
+        'Tàu Petrolimex 21',
+        'Phòng Khai thác',
+        'Phòng Kỹ thuật',
+        'Phòng An toàn/QHSE',
+        'Phòng Tài chính',
+        'Ban Giám đốc'
+      ],
+      recipients: ['Phòng Kỹ thuật','Phòng An toàn/QHSE','Phòng Tài chính','Ban Giám đốc'],
+      currentUser: 'Vũ E',
+      currentUnit: 'Ban Giám đốc',
+      proc:[
+        {code:'OPS-01', name:'Lập kế hoạch chuyến', owner:U[0], state:'Approved', version:'1.0', author:U[0], approver:'QMR: Vũ E', created:'2025-01-05', released:'2025-01-10',
+         desc:'Quy trình lập và phê duyệt kế hoạch hành trình.', docs:[{ver:'1.0', file:'OPS-01_KeHoachChuyen_v1.0.pdf', date:'2025-01-10 09:00'}],
+         changes:[{time:now(),user:U[0],action:'Approve',detail:'QMR duyệt 1.0'}]},
+        {code:'OPS-02', name:'Bàn giao ca trực', owner:U[1], state:'Draft', version:'0.8', author:U[1], approver:'', created:'2025-02-01', released:'', desc:'Tiếp nhận & bàn giao ca trực an toàn.',
+         docs:[{ver:'0.8', file:'OPS-02_BanGiaoCa_v0.8.docx', date:'2025-02-03 08:00'}], changes:[{time:now(),user:U[1],action:'Create',detail:'Khởi tạo bản nháp'}]},
+        {code:'OPS-03', name:'Tiếp nhận nhiên liệu', owner:U[2], state:'Submitted', version:'1.0', author:'Phạm D', approver:'QMR: Vũ E', created:'2025-03-10', released:'2025-03-16', desc:'Tiếp nhận nhiên liệu & BDN.',
+         docs:[{ver:'1.0', file:'OPS-03_TiepNhanNhienLieu_v1.0.pdf', date:'2025-03-16 10:20'}], changes:[{time:now(),user:U[2],action:'Submit',detail:'Trình duyệt 1.0'}]}
+      ],
+      tpl:[
+        {id:'T1', proc:'OPS-01', no:'FM-OPS-01', name:'Kế hoạch chuyến (Form)', type:'Form', state:'Approved', file:'FM-OPS-01.docx'},
+        {id:'T2', proc:'OPS-01', no:'CL-OPS-01', name:'Checklist trước khởi hành', type:'Checklist', state:'Submitted', file:'CL-OPS-01.xlsx'},
+        {id:'T3', proc:'OPS-03', no:'FM-OPS-03', name:'BDN Form', type:'Form', state:'Submitted', file:'FM-OPS-03.docx'}
+      ],
+      subs:[],
+      appr:[],
+      log:[{time:now(), user:U[0], action:'Init', target:'Demo', detail:'Khởi tạo dữ liệu'}]
+    };
+  }
+
+  function seedSubmissionForDemo(){
+    const sub = {
+      id: genId(),
+      proc:'OPS-01',
+      tplNo:'FM-OPS-01',
+      tplName:'Kế hoạch chuyến (Form)',
+      unit:demo.units[0],
+      sender:demo.users[0],
+      recipients:['Phòng Kỹ thuật','Phòng An toàn/QHSE'],
+      date:'2025-03-21 10:00',
+      due:'2025-03-25',
+      state:'Submitted',
+      files:['KeHoachChuyen_PLX15_202503.docx'],
+      note:'Chuyến 03/2025'
+    };
+    demo.subs.push(sub);
+    demo.appr.push({id:'APR-'+sub.id, subId:sub.id, kind:'Biểu mẫu đã nộp', name:sub.tplName, related:sub.proc, sender:sub.unit, date:sub.date, state:'Submitted'});
+  }
+
+  function saveToStore(manual=false){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(demo));
+      localStorage.setItem(STORE_KEY+'_SAVED_AT', now());
+      if(manual) toast('Đã lưu vào trình duyệt');
+      updateStoreStat();
+    }catch(e){
+      console.error(e); toast('Không thể lưu: ' + e.message);
+    }
+  }
+  const saveDebounced = (()=>{
+    let t=null; return ()=>{ clearTimeout(t); t=setTimeout(()=>saveToStore(false), 250); };
+  })();
+  function loadFromStore(){
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ console.error(e); return null; }
+  }
+  function exportJSON(){
+    const blob = new Blob([JSON.stringify(demo,null,2)], {type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='SSMS_OPS_backup_'+Date.now()+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const obj = JSON.parse(e.target.result);
+        demo = obj;
+        initUnitSelector();
+        rerenderAll();
+        saveToStore(true);
+        toast('Đã nhập dữ liệu JSON');
+      }catch(err){ toast('File không hợp lệ: '+err.message); }
+    };
+    reader.readAsText(file);
+  }
+  function resetAndSeed(){
+    demo = getDemoSeed();
+    demo.log.unshift({time:now(), user:demo.currentUser, action:'Reset Demo', target:'System'});
+    seedSubmissionForDemo();
+    saveToStore(true);
+    initUnitSelector();
+    rerenderAll();
+    toast('Đã xóa dữ liệu và nạp lại bản Demo');
+  }
+  function updateStoreStat(){
+    const savedAt = localStorage.getItem(STORE_KEY+'_SAVED_AT') || '—';
+    const size = new Blob([JSON.stringify(demo||{})]).size;
+    qs('#storeStat').textContent = `Trạng thái: đã lưu lúc ${savedAt} • kích thước ~ ${size} bytes`;
+  }
+
+  // ======= Helpers & Ids & Unit visibility =======
+  const genId = () => 'SUB-' + Math.random().toString(36).slice(2,8).toUpperCase();
+
+  function getCurrentUnit(){
+    if(!demo) return '';
+    if(demo.currentUnit) return demo.currentUnit;
+    if(demo.units && demo.units.length>0) return demo.units[0];
+    return '';
+  }
+
+  function initUnitSelector(){
+    const sel = qs('#selCurrentUnit');
+    if(!sel || !demo) return;
+    sel.innerHTML = '';
+    (demo.units||[]).forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u; opt.textContent=u;
+      sel.appendChild(opt);
+    });
+    const cu = getCurrentUnit();
+    if(cu) sel.value = cu;
+    sel.onchange = ()=>{
+      demo.currentUnit = sel.value;
+      saveToStore(false);
+      rerenderAll();
+      toast('Đã chuyển sang đơn vị: '+demo.currentUnit);
+    };
+  }
+
+  function findSubmissionById(id){
+    return (demo.subs||[]).find(x=>x.id===id);
+  }
+
+  function isVisibleForCurrentUnitFromSubmission(sub){
+    const cu = getCurrentUnit();
+    if(!cu) return true;
+    return sub.unit === cu || (sub.recipients||[]).includes(cu);
+  }
+
+  function isVisibleApproval(a){
+    const cu = getCurrentUnit();
+    if(!cu) return true;
+    const s = a.subId ? findSubmissionById(a.subId) : null;
+    if(s) return isVisibleForCurrentUnitFromSubmission(s);
+    return a.sender === cu;
+  }
+
+  function isLogVisible(l){
+    const cu = getCurrentUnit();
+    if(!cu) return true;
+    const candidates = [];
+    if(l.detail && typeof l.detail==='string') candidates.push(l.detail.trim());
+    if(l.target && typeof l.target==='string') candidates.push(l.target.trim());
+    for(const token of candidates){
+      if(token.startsWith('SUB-')){
+        const s = findSubmissionById(token);
+        if(s) return isVisibleForCurrentUnitFromSubmission(s);
+      }
+    }
+    // Các thao tác chung (Init, Add template, Edit quy trình) cho phép xem mọi nơi
+    return true;
+  }
+
+  // ======= Renderers =======
+  function renderDashboard(){
+    qs('#kpiProc').textContent = (demo.proc||[]).length;
+    qs('#kpiTpl').textContent  = (demo.tpl||[]).length;
+    const apprList = (demo.appr||[]).filter(a=>a.state==='Submitted' && isVisibleApproval(a));
+    qs('#kpiAppr').textContent = apprList.length;
+
+    const tb = qs('#tblRecent tbody'); tb.innerHTML='';
+    const rows = (demo.log||[]).filter(isLogVisible).slice(0,6);
+    rows.forEach(l=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${l.time}</td><td>${l.user}</td><td>${l.action}</td><td>${l.target}</td>`;
+      tb.appendChild(tr);
+    });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="4" class="muted">Không có hoạt động phù hợp với đơn vị đang xem.</td>'; tb.appendChild(tr);
+    }
+  }
+
+  function renderAppr(){
+    const tb = qs('#tblAppr tbody'); tb.innerHTML='';
+    const list = (demo.appr||[]).filter(isVisibleApproval);
+    list.forEach(a=>{
+      const tr=document.createElement('tr');
+      const id = a.id || ('APR-'+(a.subId||''));
+      tr.innerHTML=`<td>${id}</td><td>${a.kind}</td><td>${a.name}</td><td>${a.related}</td><td>${a.sender}</td><td>${a.date}</td><td>${a.state}</td>
+        <td><div class="toolbar nowrap">
+          <button class="btn ghost" data-view="${id}">Xem</button>
+          <button class="btn success" data-approve="${id}">Phê duyệt</button>
+          <button class="btn danger" data-reject="${id}">Từ chối</button>
+        </div></td>`;
+      tb.appendChild(tr);
+      tr.querySelector(`button[data-view="${id}"]`).onclick = ()=>openApproval(id);
+      tr.querySelector(`button[data-approve="${id}"]`).onclick = ()=>approveItem(id);
+      tr.querySelector(`button[data-reject="${id}"]`).onclick = ()=>rejectItem(id);
+    });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td colspan="8" class="muted">Không có mục cần duyệt cho đơn vị hiện tại.</td>';
+      tb.appendChild(tr);
+    }
+  }
+
+  function renderLog(){
+    const tb = qs('#tblLog tbody'); tb.innerHTML='';
+    const rows = (demo.log||[]).filter(isLogVisible);
+    rows.forEach(l=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${l.time}</td><td>${l.user}</td><td>${l.action}</td><td>${l.target}</td><td>${l.detail||''}</td>`;
+      tb.appendChild(tr);
+    });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td colspan="5" class="muted">Không có log liên quan đến đơn vị hiện tại.</td>';
+      tb.appendChild(tr);
+    }
+  }
+
+  // ======= Quy trình =======
+  let selectedProc=null;
+  let currentProcTab='proc-list';
+
+  function selectProc(code){
+    selectedProc = (demo.proc||[]).find(p=>p.code===code)||null;
+    activateProcTab('proc-info');
+    renderProcInfo();
+    renderProcTpls();
+    renderProcChange();
+  }
+
+  function activateProcTab(key){
+    currentProcTab = key;
+    qsa('#view-process .tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===key));
+    qs('#tab-proc-list').hidden = key!=='proc-list';
+    qs('#tab-proc-info').hidden = key!=='proc-info';
+    qs('#tab-proc-templates').hidden = key!=='proc-templates';
+    qs('#tab-proc-changelog').hidden = key!=='proc-changelog';
+  }
+
+  function renderProc(){
+    const tb = qs('#tblProc tbody'); tb.innerHTML='';
+    const q = (qs('#qProc').value||'').toLowerCase();
+    (demo.proc||[]).filter(p=>!q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q))
+      .forEach(p=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${p.code}</td><td>${p.name}</td><td>${p.owner}</td><td>${p.state}</td>`;
+        tr.style.cursor='pointer';
+        tr.addEventListener('click',()=>selectProc(p.code));
+        tb.appendChild(tr);
+      });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="4" class="muted">Không có quy trình phù hợp.</td>'; tb.appendChild(tr);
+    }
+  }
+  
+  function renderProcInfo(){
+    const box = qs('#procInfo');
+    if(!selectedProc){
+      box.textContent='Chưa chọn quy trình.';
+      return;
+    }
+    const docs = (selectedProc.docs||[]);
+    const filesHtml = docs.length ? 
+      `<table class="table"><thead><tr><th>#</th><th>Phiên bản</th><th>Tệp</th><th>Ngày tải</th><th></th></tr></thead><tbody>${
+        docs.map((d,i)=>`<tr><td>${i+1}</td><td>${d.ver||''}</td><td>${d.file||''}</td><td>${d.date||''}</td>
+          <td><div class="toolbar nowrap">
+            <button class="btn ghost" data-open-doc="${i}">Mở</button>
+            <button class="btn" data-dl-doc="${i}">⬇️ Tải</button>
+            <button class="btn danger" data-del-doc="${i}">Xóa</button>
+          </div></td></tr>`).join('')
+      }</tbody></table>`
+      : `<span class="muted">Chưa có</span>`;
+    box.innerHTML = `
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Ký hiệu</label><div><strong>${selectedProc.code}</strong></div></div>
+        <div class="field"><label>Tên quy trình</label><div>${selectedProc.name}</div></div>
+        <div class="field"><label>Phiên bản hiện tại</label><div>${selectedProc.version||'-'}</div></div>
+        <div class="field"><label>Trạng thái</label><div>${selectedProc.state}</div></div>
+        <div class="field"><label>Người lập</label><div>${selectedProc.author||'-'}</div></div>
+        <div class="field"><label>Người duyệt</label><div>${selectedProc.approver||'-'}</div></div>
+        <div class="field"><label>Ngày lập</label><div>${selectedProc.created||'-'}</div></div>
+        <div class="field"><label>Ngày phát hành</label><div>${selectedProc.released||'-'}</div></div>
+        <div class="field" style="grid-column:1/-1"><label>Tài liệu đính kèm</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div style="flex:1">${filesHtml}</div>
+            <div>
+              <input id="inputAddProcDocs" type="file" multiple accept=".pdf,.doc,.docx" style="display:none;">
+              <button class="btn" id="btnAddProcDocs">＋ Thêm tài liệu</button>
+            </div>
+          </div>
+          <div class="note">Dùng <b>＋ Thêm tài liệu</b> để đính kèm nhiều file.</div>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>Mô tả</label><div>${selectedProc.desc||'-'}</div></div>
+      </div>
+    `;
+    docs.forEach((d,i)=>{
+      const o = box.querySelector(`button[data-open-doc="${i}"]`);
+      const dl = box.querySelector(`button[data-dl-doc="${i}"]`);
+      const del = box.querySelector(`button[data-del-doc="${i}"]`);
+      if(o){ o.onclick = ()=> openDummy(d.file||('file_'+(i+1))); }
+      if(dl){ dl.onclick = ()=> downloadDummy(d.file||('file_'+(i+1))); }
+      if(del){ del.onclick = ()=>{ if(confirm('Xóa tài liệu này?')){ selectedProc.docs.splice(i,1); saveDebounced(); renderProcInfo(); toast('Đã xóa tài liệu'); } }; }
+    });
+    const addBtn = box.querySelector('#btnAddProcDocs');
+    const addInput = box.querySelector('#inputAddProcDocs');
+    if(addBtn && addInput){
+      addBtn.onclick = ()=> addInput.click();
+      addInput.onchange = ()=>{
+        const files = Array.from(addInput.files||[]);
+        if(files.length){
+          selectedProc.docs = selectedProc.docs||[];
+          files.forEach(ff=> selectedProc.docs.push({ver:selectedProc.version||'1.0', file:ff.name, date:now()}));
+          saveDebounced(); renderProcInfo(); renderProcChange(); renderDashboard(); toast('Đã đính kèm '+files.length+' tài liệu');
+        }
+        addInput.value='';
+      };
+    }
+  }
+
+  function renderProcTpls(){
+    const tb = qs('#tblProcTpl tbody'); tb.innerHTML='';
+    if(!selectedProc){ return; }
+    const q = (qs('#qProc').value||'').toLowerCase();
+    (demo.tpl||[])
+      .filter(t=>t.proc===selectedProc.code)
+      .filter(t=>{
+        if(!q) return true;
+        return (t.no||'').toLowerCase().includes(q) ||
+               (t.name||'').toLowerCase().includes(q) ||
+               (t.type||'').toLowerCase().includes(q) ||
+               (t.file||'').toLowerCase().includes(q) ||
+               (t.state||'').toLowerCase().includes(q);
+      })
+      .forEach((t,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i+1}</td><td>${t.no||'-'}</td><td>${t.name}</td><td>${t.type}</td><td>${t.file||'-'}</td><td>${t.state}</td>
+          <td><div class="toolbar nowrap">
+            <button class="btn ghost" data-open="${t.id}">Mở</button>
+            <button class="btn" data-dl="${t.id}">⬇️ Tải</button>
+            <button class="btn" data-edit="${t.id}">Sửa</button>
+            <button class="btn danger" data-del="${t.id}">Xóa</button>
+          </div></td>`;
+        tb.appendChild(tr);
+        tr.querySelector(`button[data-open="${t.id}"]`).addEventListener('click',()=> t.file ? openDummy(t.file) : toast('Mẫu chưa có file'));
+        tr.querySelector(`button[data-dl="${t.id}"]`).addEventListener('click',()=> t.file ? downloadDummy(t.file) : toast('Mẫu chưa có file'));
+        tr.querySelector(`button[data-edit="${t.id}"]`).addEventListener('click',()=> openTplModal('edit', selectedProc.code, t));
+        tr.querySelector(`button[data-del="${t.id}"]`).addEventListener('click',()=> deleteTpl(t.id));
+      });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="7" class="muted">Không có mẫu phù hợp.</td>'; tb.appendChild(tr);
+    }
+  }
+
+  function renderProcChange(){
+    const tb = qs('#tblProcChange tbody'); tb.innerHTML='';
+    if(!selectedProc){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="4" class="muted">Chưa chọn quy trình.</td>'; tb.appendChild(tr); return;
+    }
+    (selectedProc.changes||[]).forEach(ch=>{
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${ch.time}</td><td>${ch.user}</td><td>${ch.action}</td><td>${ch.detail||''}</td>`;
+      tb.appendChild(tr);
+    });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="4" class="muted">Chưa có thay đổi.</td>'; tb.appendChild(tr);
+    }
+  }
+
+  // ======= Modals: Create/Edit =======
+  let editMode = 'new';
+
+  function openProcModal(mode){
+    editMode = mode; qs('#modalProcTitle').textContent = (mode==='new'?'＋ Quy trình':'✎ Sửa quy trình');
+    const fCode=qs('#fCode'), fName=qs('#fName'), fVersion=qs('#fVersion'), fState=qs('#fState'),
+      fAuthor=qs('#fAuthor'), fApprover=qs('#fApprover'), fCreated=qs('#fCreated'), fReleased=qs('#fReleased'),
+      fDesc=qs('#fDesc'), fDocs=qs('#fDocs');
+    if(mode==='edit' && selectedProc){
+      fCode.value = selectedProc.code; fName.value = selectedProc.name; fVersion.value = selectedProc.version||'';
+      fState.value = selectedProc.state||'Draft'; fAuthor.value = selectedProc.author||''; fApprover.value = selectedProc.approver||'';
+      fCreated.value = selectedProc.created||''; fReleased.value = selectedProc.released||''; fDesc.value = selectedProc.desc||''; fDocs.value='';
+      fCode.disabled = true;
+    } else {
+      fCode.value = ''; fName.value=''; fVersion.value='1.0'; fState.value='Draft'; fAuthor.value=''; fApprover.value=''; fCreated.value=''; fReleased.value=''; fDesc.value=''; fDocs.value=''; fCode.disabled = false;
+    }
+    openModal('modalProc');
+  }
+
+  function saveProc(){
+    const fCode=qs('#fCode'), fName=qs('#fName'), fVersion=qs('#fVersion'), fState=qs('#fState'),
+      fAuthor=qs('#fAuthor'), fApprover=qs('#fApprover'), fCreated=qs('#fCreated'), fReleased=qs('#fReleased'),
+      fDesc=qs('#fDesc'), fDocs=qs('#fDocs');
+    const payload = {
+      code: fCode.value.trim(),
+      name: fName.value.trim(),
+      version: fVersion.value.trim(),
+      state: fState.value,
+      author: fAuthor.value.trim(),
+      approver: fApprover.value.trim(),
+      created: fCreated.value,
+      released: fReleased.value,
+      desc: fDesc.value.trim()
+    };
+    if(!payload.code || !payload.name){
+      toast('Vui lòng nhập Ký hiệu và Tên quy trình'); return;
+    }
+    const files = Array.from(fDocs.files||[]);
+    if(editMode==='new'){
+      const owner = demo.users[0];
+      const proc = { ...payload, owner, docs:[], changes:[{time:now(),user:owner,action:'Create',detail:`Khởi tạo ${payload.version||''}`}] };
+      if(files && files.length){
+        files.forEach(ff=>{ proc.docs.push({ver:payload.version||'1.0', file:ff.name, date:now()}); });
+      }
+      demo.proc.unshift(proc);
+      demo.log.unshift({time:now(), user:owner, action:'Create', target:payload.code, detail:payload.name});
+    } else if(editMode==='edit' && selectedProc){
+      Object.assign(selectedProc, payload);
+      if(files && files.length){
+        selectedProc.docs = selectedProc.docs||[];
+        files.forEach(ff=> selectedProc.docs.push({ver:payload.version||'1.0', file:ff.name, date:now()}));
+      }
+      selectedProc.changes = selectedProc.changes||[];
+      selectedProc.changes.unshift({time:now(), user:demo.currentUser, action:'Edit', detail:'Cập nhật thông tin chung'});
+      demo.log.unshift({time:now(), user:demo.currentUser, action:'Edit', target:payload.code, detail:'Thông tin chung'});
+    }
+    saveDebounced();
+    closeModal('modalProc');
+    renderProc();
+    renderProcInfo();
+    renderProcChange();
+    renderDashboard();
+    toast('Đã lưu quy trình');
+  }
+
+  let tplEdit = { mode:'new', procCode:null, tpl:null };
+
+  function openTplModal(mode, procCode, tpl=null){
+    tplEdit = {mode, procCode, tpl}; qs('#modalTplTitle').textContent = (mode==='new'?'＋ Biểu mẫu':'✎ Sửa biểu mẫu');
+    const tNo=qs('#tNo'), tName=qs('#tName'), tType=qs('#tType'), tState=qs('#tState'), tFile=qs('#tFile');
+    if(mode==='edit' && tpl){
+      tNo.value = tpl.no||''; tName.value = tpl.name||''; tType.value = tpl.type||'Form'; tState.value = tpl.state||'Draft'; tFile.value = '';
+    } else {
+      tNo.value = ''; tName.value=''; tType.value='Form'; tState.value='Draft'; tFile.value='';
+    }
+    openModal('modalTpl');
+  }
+
+  function saveTpl(){
+    const tNo=qs('#tNo'), tName=qs('#tName'), tType=qs('#tType'), tState=qs('#tState'), tFile=qs('#tFile');
+    const payload = { no:tNo.value.trim(), name:tName.value.trim(), type:tType.value, state:tState.value };
+    if(!payload.name){ toast('Nhập tên biểu mẫu'); return; }
+    const code = tplEdit.procCode || (selectedProc && selectedProc.code);
+    if(!code){ toast('Chưa chọn quy trình'); return; }
+    const file = tFile.files[0]; if(file){ payload.file = file.name; }
+    if(tplEdit.mode==='new'){
+      (demo.tpl||[]).push({id:'T'+(Math.random().toString(36).slice(2,6)), proc:code, ...payload});
+      demo.log.unshift({time:now(), user:demo.currentUser, action:'Add template', target:payload.name});
+    } else if(tplEdit.mode==='edit' && tplEdit.tpl){
+      Object.assign(tplEdit.tpl, payload);
+      demo.log.unshift({time:now(), user:demo.currentUser, action:'Edit template', target:payload.name});
+    }
+    saveDebounced();
+    closeModal('modalTpl');
+    if(selectedProc && selectedProc.code===code){ renderProcTpls(); }
+    renderDashboard();
+    toast('Đã lưu biểu mẫu');
+  }
+
+  function deleteTpl(id){
+    if(!confirm('Xóa biểu mẫu này?')) return;
+    const idx = (demo.tpl||[]).findIndex(t=>t.id===id);
+    if(idx>=0){
+      const removed = demo.tpl.splice(idx,1)[0];
+      demo.log.unshift({time:now(), user:demo.currentUser, action:'Delete template', target:removed.name});
+      if(selectedProc){ renderProcTpls(); }
+      renderDashboard();
+      saveDebounced();
+      toast('Đã xóa biểu mẫu');
+    }
+  }
+
+  // ======= Submissions =======
+  function hydrateProcFilter(){
+    const sel = qs('#fltProc'); sel.innerHTML='<option value="">-- Quy trình --</option>';
+    (demo.proc||[]).forEach(p=>{
+      const opt=document.createElement('option');
+      opt.value=p.code; opt.textContent=`${p.code} — ${p.name}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  function renderSubs(){
+    const tb = qs('#tblSubs tbody'); tb.innerHTML='';
+    const p = qs('#fltProc').value; const st = qs('#fltState').value;
+    const list = (demo.subs||[])
+      .filter(isVisibleForCurrentUnitFromSubmission)
+      .filter(s=>(!p || s.proc===p) && (!st || s.state===st));
+    list.forEach(s=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${s.id}</td><td>${s.proc}</td><td>${s.tplNo||''}</td><td>${s.tplName||''}</td><td>${s.unit}</td><td>${s.sender}</td>
+      <td>${(s.recipients||[]).map(r=>`<span class='chip'>${r}</span>`).join(' ')}</td><td>${s.date||''}</td><td>${s.due||''}</td><td>${s.state}</td>
+      <td><div class="toolbar nowrap">
+        <button class="btn ghost" data-view="${s.id}">Xem</button>
+        <button class="btn" data-send="${s.id}">Gửi</button>
+        <button class="btn warn" data-withdraw="${s.id}">Thu hồi</button>
+      </div></td>`;
+      tb.appendChild(tr);
+      tr.querySelector(`button[data-view="${s.id}"]`).addEventListener('click',()=>openViewSubmission(s.id));
+      tr.querySelector(`button[data-send="${s.id}"]`).addEventListener('click',()=>sendSubmission(s.id));
+      tr.querySelector(`button[data-withdraw="${s.id}"]`).addEventListener('click',()=>withdrawSubmission(s.id));
+    });
+    if(tb.children.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML='<td colspan="11" class="muted">Không có biểu mẫu phù hợp với đơn vị hiện tại.</td>'; tb.appendChild(tr);
+    }
+  }
+
+  function openNewSubmit(){
+    const sProc = qs('#sProc');
+    sProc.innerHTML='';
+    (demo.proc||[]).forEach(p=>{
+      const o=document.createElement('option'); o.value=p.code; o.textContent=`${p.code} — ${p.name}`; sProc.appendChild(o);
+    });
+    const sTpl = qs('#sTpl');
+    sTpl.innerHTML='';
+    const firstCode = (demo.proc||[])[0]?.code;
+    (demo.tpl||[]).filter(t=>t.proc===firstCode).forEach(t=>{
+      const o=document.createElement('option'); o.value=t.id; o.textContent=`${t.no} — ${t.name}`; sTpl.appendChild(o);
+    });
+    sProc.onchange = ()=>{
+      sTpl.innerHTML='';
+      (demo.tpl||[]).filter(t=>t.proc===sProc.value).forEach(t=>{
+        const o=document.createElement('option'); o.value=t.id; o.textContent=`${t.no} — ${t.name}`; sTpl.appendChild(o);
+      });
+    };
+    const sUnit = qs('#sUnit'); sUnit.innerHTML='';
+    (demo.units||[]).forEach(u=>{
+      const o=document.createElement('option'); o.value=u; o.textContent=u; sUnit.appendChild(o);
+    });
+    const cu = getCurrentUnit();
+    if(cu) sUnit.value = cu;
+    const recBox = qs('#sRecipients'); recBox.innerHTML='';
+    (demo.recipients||[]).forEach((r,i)=>{
+      const id='rcv'+i;
+      const lbl=document.createElement('label');
+      lbl.style.display='inline-flex';
+      lbl.style.alignItems='center';
+      lbl.style.gap='6px';
+      lbl.innerHTML=`<input type='checkbox' id='${id}' value='${r}'> ${r}`;
+      recBox.appendChild(lbl);
+    });
+    qs('#sSender').value = (demo.users||[])[0]||'Người dùng';
+    qs('#sDue').value = '';
+    qs('#sNote').value = '';
+    qs('#sFiles').value = '';
+    openModal('modalSubmit');
+  }
+
+  function collectRecipients(){
+    return Array.from(qs('#sRecipients').querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
+  }
+
+  function makeSubmission(state){
+    const sProc = qs('#sProc').value;
+    const tId = qs('#sTpl').value;
+    const tpl = (demo.tpl||[]).find(t=>t.id===tId);
+    if(!tpl){ toast('Chọn biểu mẫu'); return; }
+    const unit = qs('#sUnit').value;
+    const sender = (qs('#sSender').value||'').trim()||((demo.users||[])[0]||'Người dùng');
+    const recipients = collectRecipients();
+    if(recipients.length===0){ toast('Chọn ít nhất 1 người nhận'); return; }
+    const due = qs('#sDue').value;
+    const files = Array.from(qs('#sFiles').files||[]).map(f=>f.name);
+    if(files.length===0){ toast('Chọn tệp đã điền'); return; }
+    const note = (qs('#sNote').value||'').trim();
+    const sub = {
+      id: genId(),
+      proc:sProc,
+      tplNo:tpl.no,
+      tplName:tpl.name,
+      unit,
+      sender,
+      recipients,
+      date: state==='Submitted'? now(): '',
+      due,
+      state,
+      files,
+      note
+    };
+    (demo.subs||[]).unshift(sub);
+    (demo.log||[]).unshift({time:now(), user:sender, action:(state==='Submitted'?'Submit form':'Save draft'), target:tpl.name, detail:sub.id});
+    if(state==='Submitted'){
+      (demo.appr||[]).unshift({id:'APR-'+sub.id, subId:sub.id, kind:'Biểu mẫu đã nộp', name:tpl.name, related:sProc, sender:unit, date:now(), state:'Submitted'});
+      renderAppr();
+    }
+    saveDebounced();
+    closeModal('modalSubmit');
+    hydrateProcFilter();
+    renderSubs();
+    renderDashboard();
+    renderLog();
+    toast(state==='Submitted'?'Đã nộp & gửi duyệt':'Đã lưu Nháp');
+  }
+
+  function openViewSubmission(id){
+    const s = findSubmissionById(id);
+    if(!s){ toast('Không tìm thấy biểu mẫu'); return; }
+    alert(`[Xem nhanh] ${s.id} – ${s.tplName}\nĐơn vị gửi: ${s.unit}\nNgười gửi: ${s.sender}\nTrạng thái: ${s.state}`);
+  }
+  function sendSubmission(id){
+    const s = findSubmissionById(id);
+    if(!s){ toast('Không tìm thấy biểu mẫu'); return; }
+    if(s.state==='Submitted'){ toast('Đã ở trạng thái Submitted'); return; }
+    s.state='Submitted';
+    s.date = now();
+    (demo.appr||[]).unshift({id:'APR-'+s.id, subId:s.id, kind:'Biểu mẫu đã nộp', name:s.tplName, related:s.proc, sender:s.unit, date:s.date, state:'Submitted'});
+    demo.log.unshift({time:now(), user:s.sender, action:'Submit form', target:s.tplName, detail:s.id});
+    saveDebounced();
+    renderSubs();
+    renderAppr();
+    renderDashboard();
+    renderLog();
+    toast('Đã gửi biểu mẫu');
+  }
+  function withdrawSubmission(id){
+    const s = findSubmissionById(id);
+    if(!s){ toast('Không tìm thấy biểu mẫu'); return; }
+    if(!confirm('Thu hồi biểu mẫu này?')) return;
+    s.state='Draft';
+    demo.log.unshift({time:now(), user:s.sender, action:'Withdraw', target:s.id});
+    saveDebounced();
+    renderSubs();
+    renderAppr();
+    renderDashboard();
+    renderLog();
+    toast('Đã thu hồi biểu mẫu');
+  }
+
+  // ======= Phê duyệt =======
+  function getApprByAnyId(id){
+    return (demo.appr||[]).find(a => (a.id||('APR-'+(a.subId||''))) === id);
+  }
+
+  function openApproval(id){
+    const a = getApprByAnyId(id); if(!a){ toast('Không tìm thấy yêu cầu'); return; }
+    const s = a.subId ? findSubmissionById(a.subId) : null;
+    const box = qs('#apprDetail');
+    if(!s){
+      box.innerHTML = `<div class="muted">Mục này không liên kết submission. Thông tin: <strong>${a.name}</strong> (${a.related}) – trạng thái: ${a.state}</div>`;
+    } else {
+      box.innerHTML = `
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Approval ID</label><div><strong>${a.id||('APR-'+a.subId)}</strong></div></div>
+        <div class="field"><label>Trạng thái</label><div>${a.state}</div></div>
+        <div class="field"><label>Submission ID</label><div>${s.id}</div></div>
+        <div class="field"><label>Quy trình</label><div>${s.proc}</div></div>
+        <div class="field"><label>Mẫu</label><div>${s.tplNo||''} — ${s.tplName||''}</div></div>
+        <div class="field"><label>Đơn vị gửi</label><div>${s.unit}</div></div>
+        <div class="field"><label>Người gửi</label><div>${s.sender}</div></div>
+        <div class="field"><label>Ngày gửi</label><div>${s.date||'-'}</div></div>
+        <div class="field"><label>Hạn xử lý</label><div>${s.due||'-'}</div></div>
+        <div class="field" style="grid-column:1/-1"><label>Files</label>
+          <div>${s.files.map((f,i)=>`<div style='display:flex;align-items:center;gap:8px;margin:4px 0'><span>${f}</span><button class='btn ghost' data-openf='${i}'>Mở</button><button class='btn' data-dlf='${i}'>⬇️ Tải</button></div>`).join('')}</div>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>Ghi chú của người gửi</label><div>${s.note||'-'}</div></div>
+      </div>`;
+      s.files.forEach((f,i)=>{
+        box.querySelector(`button[data-openf='${i}']`).onclick = ()=>openDummy(f);
+        box.querySelector(`button[data-dlf='${i}']`).onclick = ()=>downloadDummy(f);
+      });
+    }
+    qs('#apprComment').value='';
+    qs('#btnApprove').onclick=()=>approveItem(id);
+    qs('#btnReject').onclick=()=>rejectItem(id);
+    openModal('modalAppr');
+  }
+
+  function approveItem(id){
+    const a = getApprByAnyId(id); if(!a){ return; }
+    const s = a.subId ? findSubmissionById(a.subId) : null;
+    a.state='Approved';
+    a.date=now();
+    a.approver=demo.currentUser;
+    a.comment = (qs('#apprComment').value||'').trim();
+    if(s){
+      s.state='Approved';
+      (demo.log||[]).unshift({time:now(), user:demo.currentUser, action:'Approve', target:s.id, detail:a.comment||''});
+    } else {
+      (demo.log||[]).unshift({time:now(), user:demo.currentUser, action:'Approve', target:a.name, detail:a.comment||''});
+    }
+    saveDebounced();
+    renderAppr();
+    renderSubs();
+    renderDashboard();
+    renderLog();
+    closeModal('modalAppr');
+    toast('Đã phê duyệt');
+  }
+
+  function rejectItem(id){
+    const a = getApprByAnyId(id); if(!a){ return; }
+    const s = a.subId ? findSubmissionById(a.subId) : null;
+    a.state='Rejected';
+    a.date=now();
+    a.approver=demo.currentUser;
+    a.comment = (qs('#apprComment').value||'').trim();
+    if(s){
+      s.state='Rejected';
+      (demo.log||[]).unshift({time:now(), user:demo.currentUser, action:'Reject', target:s.id, detail:a.comment||''});
+    } else {
+      (demo.log||[]).unshift({time:now(), user:demo.currentUser, action:'Reject', target:a.name, detail:a.comment||''});
+    }
+    saveDebounced();
+    renderAppr();
+    renderSubs();
+    renderDashboard();
+    renderLog();
+    closeModal('modalAppr');
+    toast('Đã từ chối');
+  }
+
+  // ======= Rerender all =======
+  function rerenderAll(){
+    renderDashboard();
+    renderProc();
+    renderProcInfo();
+    renderProcTpls();
+    renderProcChange();
+    hydrateProcFilter();
+    renderSubs();
+    renderAppr();
+    renderLog();
+    updateStoreStat();
+  }
+
+  // ======= View switching & Init =======
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      const _nav=qs('#leftNav');
+      if(_nav){
+        _nav.addEventListener('click', (e)=>{
+          const a=e.target.closest('a[data-view]');
+          if(!a) return;
+          e.preventDefault();
+          e.stopPropagation();
+          try { go(a.dataset.view); } catch(err){ console.error(err); toast('Lỗi chuyển tab: '+err.message); }
+        });
+      }
+
+      // Process events
+      const _btnSearchProc = qs('#btnSearchProc'); if(_btnSearchProc) _btnSearchProc.addEventListener('click',()=>{
+        if(currentProcTab==='proc-templates'){ renderProcTpls(); } else { renderProc(); }
+      });
+      const _btnNewProc = qs('#btnNewProc'); if(_btnNewProc) _btnNewProc.addEventListener('click',()=>openProcModal('new'));
+      const _btnEditProc = qs('#btnEditProc'); if(_btnEditProc) _btnEditProc.addEventListener('click',()=>{ if(!selectedProc){ toast('Chọn quy trình trước'); return; } openProcModal('edit'); });
+      const _btnSaveProc = qs('#btnSaveProc'); if(_btnSaveProc) _btnSaveProc.addEventListener('click',saveProc);
+      const _btnAddTpl = qs('#btnAddTpl'); if(_btnAddTpl) _btnAddTpl.addEventListener('click',()=>{ if(!selectedProc){ toast('Chọn quy trình trước'); return; } openTplModal('new', selectedProc.code); });
+      const _btnSaveTpl = qs('#btnSaveTpl'); if(_btnSaveTpl) _btnSaveTpl.addEventListener('click',saveTpl);
+
+      // Process tabs
+      qsa('#view-process .tab-btn').forEach(b=> b.addEventListener('click',()=>{
+        const key = b.dataset.tab;
+        activateProcTab(key);
+        if(key==='proc-list')      { renderProc(); }
+        if(key==='proc-info')      { renderProcInfo(); }
+        if(key==='proc-templates') { renderProcTpls(); }
+        if(key==='proc-changelog'){ renderProcChange(); }
+      }));
+
+      // Submissions events
+      const _btnFilter = qs('#btnFilter'); if(_btnFilter) _btnFilter.addEventListener('click',renderSubs);
+      const _btnNewSubmit = qs('#btnNewSubmit'); if(_btnNewSubmit) _btnNewSubmit.addEventListener('click',openNewSubmit);
+      const _btnSaveDraft = qs('#btnSaveDraft'); if(_btnSaveDraft) _btnSaveDraft.addEventListener('click',()=>makeSubmission('Draft'));
+      const _btnSubmitSend = qs('#btnSubmitSend'); if(_btnSubmitSend) _btnSubmitSend.addEventListener('click',()=>makeSubmission('Submitted'));
+
+      // Settings events
+      const _btnSaveNow = qs('#btnSaveNow'); if(_btnSaveNow) _btnSaveNow.addEventListener('click',()=>saveToStore(true));
+      const _btnExport = qs('#btnExport'); if(_btnExport) _btnExport.addEventListener('click',exportJSON);
+      const _btnImport = qs('#btnImport'); if(_btnImport) _btnImport.addEventListener('click',()=>qs('#fileImport').click());
+      const _fileImport = qs('#fileImport'); if(_fileImport) _fileImport.addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importJSON(f); e.target.value=''; });
+      const _btnReset = qs('#btnReset'); if(_btnReset) _btnReset.addEventListener('click',()=>{ if(confirm('Xóa toàn bộ dữ liệu hiện tại và nạp dữ liệu Demo?')) resetAndSeed(); });
+
+      // Boot
+      try {
+        demo = loadFromStore();
+        if(!demo){
+          demo = getDemoSeed();
+          seedSubmissionForDemo();
+          saveToStore(false);
+        }
+        initUnitSelector();
+        rerenderAll();
+        const last = localStorage.getItem('SSMS_OPS_LASTVIEW') || 'dashboard';
+        go(last);
+      } catch(err) {
+        console.error(err);
+        toast('Lỗi khởi tạo: '+err.message);
+      }
+    } catch(err) {
+      console.error(err);
+      toast('Sự cố bind sự kiện: '+err.message);
+    }
+  });
+
+  // Fallback rebinding for aside
+  (function(){
+    let rebound=false;
+    document.addEventListener('click',(e)=>{
+      if(rebound) return;
+      const aside = e.target.closest && e.target.closest('aside');
+      if(!aside) return;
+      const nav = document.querySelector('#leftNav');
+      if(nav && !nav.__bound){
+        nav.addEventListener('click', (ev)=>{
+          const a=ev.target.closest('a[data-view]');
+          if(!a) return;
+          ev.preventDefault(); ev.stopPropagation();
+          try { go(a.dataset.view); } catch(err){ console.error(err); }
+        });
+        nav.__bound=true;
+        rebound=true;
+      }
+    }, true);
+  })();
+  </script>
+</body></html>
