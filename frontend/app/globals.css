@@ -1,0 +1,253 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+/* ================================
+   SSMS Design System - CSS Variables
+   ================================ */
+
+:root {
+  /* Background & Surface */
+  --bg-primary: #f8fafc;        /* Slate 50 - Background chính */
+  --bg-secondary: #f1f5f9;      /* Slate 100 - Background phụ */
+  --surface: #ffffff;           /* White - Card, Panel */
+
+  /* Text Colors */
+  --text-primary: #0f172a;      /* Slate 900 - Text chính */
+  --text-secondary: #64748b;    /* Slate 500 - Text phụ, muted */
+  --text-tertiary: #94a3b8;     /* Slate 400 - Placeholder, disabled */
+
+  /* Border & Divider */
+  --border-light: #e2e8f0;      /* Slate 200 - Border nhạt */
+  --border-medium: #cbd5e1;     /* Slate 300 - Border đậm hơn */
+  --border-dark: #94a3b8;       /* Slate 400 - Border focus */
+
+  /* Brand Colors - TRÁNH dùng xanh-tím AI */
+  --primary: #0369a1;           /* Sky 700 - Primary đậm hơn (thay #0ea5e9) */
+  --primary-light: #0284c7;     /* Sky 600 */
+  --primary-lighter: #bae6fd;   /* Sky 200 - Background hover */
+  --primary-dark: #075985;      /* Sky 800 - Active state */
+
+  /* Semantic Colors */
+  --success: #059669;           /* Emerald 600 (thay #10b981) */
+  --success-light: #d1fae5;     /* Emerald 100 */
+  --warning: #d97706;           /* Amber 600 (thay #f59e0b) */
+  --warning-light: #fef3c7;     /* Amber 100 */
+  --danger: #dc2626;            /* Red 600 (thay #ef4444) */
+  --danger-light: #fee2e2;      /* Red 100 */
+  --info: #2563eb;              /* Blue 600 */
+  --info-light: #dbeafe;        /* Blue 100 */
+
+  /* Font Family - KHÔNG DÙNG default system-ui */
+  --font-primary: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-monospace: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+  /* Font Sizes - Scale chuẩn */
+  --text-xs: 11px;      /* Captions, labels nhỏ */
+  --text-sm: 12px;      /* Muted text, table headers */
+  --text-base: 13px;    /* Body text, table cells */
+  --text-md: 14px;      /* Button text */
+  --text-lg: 16px;      /* H4, Card titles */
+  --text-xl: 18px;      /* H3, Page titles */
+  --text-2xl: 20px;     /* H2, Section headers */
+  --text-3xl: 24px;     /* H1, Dashboard KPI */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.08em;
+
+  /* Spacing Scale - 4px base unit */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Component-specific spacing */
+  --padding-btn: 8px 14px;              /* Button padding */
+  --padding-input: 9px 12px;            /* Input, Select padding */
+  --padding-card: 14px;                 /* Card body */
+  --padding-panel: 14px 16px;           /* Panel body */
+  --gap-toolbar: 8px;                   /* Toolbar button gap */
+  --gap-form: 12px;                     /* Form field gap */
+
+  /* Border Radius Hierarchy - QUAN TRỌNG */
+  --radius-sm: 6px;       /* Chip, badge, kbd */
+  --radius-md: 8px;       /* Input, select, small buttons */
+  --radius-lg: 10px;      /* Button, nav items */
+  --radius-xl: 12px;      /* Card */
+  --radius-2xl: 14px;     /* Panel, Modal, Sidebar */
+  --radius-full: 9999px;  /* Pill buttons, avatar */
+
+  /* Shadows & Elevation - CẤM BOX-SHADOW AI */
+  --shadow-none: none;
+  --shadow-border: 0 0 0 1px var(--border-light);  /* Thay box-shadow */
+  --shadow-modal: 0 20px 40px rgba(15, 23, 42, 0.12);
+  --shadow-dropdown: 0 10px 20px rgba(15, 23, 42, 0.08);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;     /* Button, input */
+  --transition-base: 0.2s ease-in-out;      /* Card, navigation */
+  --transition-slow: 0.3s ease-in-out;      /* Modal, drawer */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-primary);
+  --font-mono: var(--font-monospace);
+}
+
+/* ================================
+   Global Styles
+   ================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* ================================
+   Scrollbar Styling
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-dark);
+}
+
+/* ================================
+   Typography Reset
+   ================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+}
+
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+h5 { font-size: var(--text-md); }
+h6 { font-size: var(--text-base); }
+
+p {
+  margin: 0;
+  line-height: var(--leading-normal);
+}
+
+/* ================================
+   Focus Styles for Accessibility
+   ================================ */
+
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ================================
+   Utility Classes
+   ================================ */
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.text-muted {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.border-light {
+  border: 1px solid var(--border-light);
+}
+
+.border-medium {
+  border: 1px solid var(--border-medium);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-light);
+  border: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
