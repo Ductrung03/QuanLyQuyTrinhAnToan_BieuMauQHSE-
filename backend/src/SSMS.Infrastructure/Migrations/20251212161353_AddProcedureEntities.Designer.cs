@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SSMS.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SSMS.Infrastructure.Data;
 namespace SSMS.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251212161353_AddProcedureEntities")]
+    partial class AddProcedureEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,10 +44,12 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FullName")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -75,12 +80,13 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Role")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("User");
 
-                    b.Property<int?>("UnitId")
+                    b.Property<int>("UnitId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -101,63 +107,6 @@ namespace SSMS.Infrastructure.Migrations
                     b.HasIndex("UnitId");
 
                     b.ToTable("AppUser", (string)null);
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsApproval", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("ApprovalId");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ActionDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int>("ApproverUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApproverUserId");
-
-                    b.HasIndex("SubmissionId");
-
-                    b.ToTable("OpsApproval", (string)null);
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsProcedure", b =>
@@ -304,201 +253,6 @@ namespace SSMS.Infrastructure.Migrations
                     b.ToTable("OpsProcedureDocument", (string)null);
                 });
 
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("SubmissionId");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("ProcedureId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RecallReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("RecalledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("Submitted");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int>("SubmittedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TemplateId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProcedureId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.HasIndex("TemplateId");
-
-                    b.ToTable("OpsSubmission", (string)null);
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmissionFile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("SubmissionFileId");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubmissionId");
-
-                    b.ToTable("OpsSubmissionFile", (string)null);
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmissionRecipient", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("RecipientId");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsRead")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<string>("RecipientType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasDefaultValue("CC");
-
-                    b.Property<int>("RecipientUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipientUserId");
-
-                    b.HasIndex("SubmissionId");
-
-                    b.ToTable("OpsSubmissionRecipient", (string)null);
-                });
-
             modelBuilder.Entity("SSMS.Core.Entities.OpsTemplate", b =>
                 {
                     b.Property<int>("Id")
@@ -594,6 +348,7 @@ namespace SSMS.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("UnitCode");
@@ -622,6 +377,7 @@ namespace SSMS.Infrastructure.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("UnitName");
@@ -630,6 +386,7 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Type")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("UnitType");
@@ -653,28 +410,10 @@ namespace SSMS.Infrastructure.Migrations
                     b.HasOne("SSMS.Core.Entities.Unit", "Unit")
                         .WithMany("Users")
                         .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Unit");
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsApproval", b =>
-                {
-                    b.HasOne("SSMS.Core.Entities.AppUser", "Approver")
-                        .WithMany()
-                        .HasForeignKey("ApproverUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SSMS.Core.Entities.OpsSubmission", "Submission")
-                        .WithMany()
-                        .HasForeignKey("SubmissionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Approver");
-
-                    b.Navigation("Submission");
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsProcedure", b =>
@@ -712,62 +451,6 @@ namespace SSMS.Infrastructure.Migrations
                     b.Navigation("Procedure");
                 });
 
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmission", b =>
-                {
-                    b.HasOne("SSMS.Core.Entities.OpsProcedure", "Procedure")
-                        .WithMany()
-                        .HasForeignKey("ProcedureId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SSMS.Core.Entities.AppUser", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SSMS.Core.Entities.OpsTemplate", "Template")
-                        .WithMany()
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Procedure");
-
-                    b.Navigation("SubmittedByUser");
-
-                    b.Navigation("Template");
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmissionFile", b =>
-                {
-                    b.HasOne("SSMS.Core.Entities.OpsSubmission", "Submission")
-                        .WithMany("Files")
-                        .HasForeignKey("SubmissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Submission");
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmissionRecipient", b =>
-                {
-                    b.HasOne("SSMS.Core.Entities.AppUser", "RecipientUser")
-                        .WithMany()
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SSMS.Core.Entities.OpsSubmission", "Submission")
-                        .WithMany("Recipients")
-                        .HasForeignKey("SubmissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("RecipientUser");
-
-                    b.Navigation("Submission");
-                });
-
             modelBuilder.Entity("SSMS.Core.Entities.OpsTemplate", b =>
                 {
                     b.HasOne("SSMS.Core.Entities.OpsProcedure", "Procedure")
@@ -794,13 +477,6 @@ namespace SSMS.Infrastructure.Migrations
                     b.Navigation("Documents");
 
                     b.Navigation("Templates");
-                });
-
-            modelBuilder.Entity("SSMS.Core.Entities.OpsSubmission", b =>
-                {
-                    b.Navigation("Files");
-
-                    b.Navigation("Recipients");
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.Unit", b =>

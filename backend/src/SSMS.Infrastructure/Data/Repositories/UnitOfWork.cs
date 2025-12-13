@@ -14,12 +14,26 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<AppUser> Users { get; }
     public IRepository<Unit> Units { get; }
+    public IRepository<OpsProcedure> Procedures { get; }
+    public IRepository<OpsProcedureDocument> ProcedureDocuments { get; }
+    public IRepository<OpsTemplate> Templates { get; }
+    public IRepository<OpsSubmission> Submissions { get; }
+    public IRepository<OpsSubmissionFile> SubmissionFiles { get; }
+    public IRepository<OpsSubmissionRecipient> SubmissionRecipients { get; }
+    public IRepository<OpsApproval> Approvals { get; }
 
     public UnitOfWork(AppDbContext context)
     {
         _context = context;
         Users = new Repository<AppUser>(context);
         Units = new Repository<Unit>(context);
+        Procedures = new Repository<OpsProcedure>(context);
+        ProcedureDocuments = new Repository<OpsProcedureDocument>(context);
+        Templates = new Repository<OpsTemplate>(context);
+        Submissions = new Repository<OpsSubmission>(context);
+        SubmissionFiles = new Repository<OpsSubmissionFile>(context);
+        SubmissionRecipients = new Repository<OpsSubmissionRecipient>(context);
+        Approvals = new Repository<OpsApproval>(context);
     }
 
     public async Task<int> SaveChangesAsync()

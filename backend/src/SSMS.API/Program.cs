@@ -83,8 +83,10 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:3000",
+            "http://localhost:3001",
             "http://localhost:5173",
             "https://localhost:3000",
+            "https://localhost:3001",
             "https://localhost:5173"
         )
         .AllowAnyMethod()
@@ -144,6 +146,10 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationH
 // Register Application Services
 builder.Services.AddScoped<SSMS.Core.Interfaces.IUnitOfWork, SSMS.Infrastructure.Data.Repositories.UnitOfWork>();
 builder.Services.AddScoped<SSMS.Infrastructure.Identity.MockAuthService>();
+builder.Services.AddScoped<SSMS.Application.Services.IProcedureService, SSMS.Application.Services.ProcedureService>();
+builder.Services.AddScoped<SSMS.Application.Services.ITemplateService, SSMS.Application.Services.TemplateService>();
+builder.Services.AddScoped<SSMS.Application.Services.ISubmissionService, SSMS.Application.Services.SubmissionService>();
+builder.Services.AddScoped<SSMS.Application.Services.IApprovalService, SSMS.Application.Services.ApprovalService>();
 
 // Add HttpContextAccessor for accessing HttpContext in services
 builder.Services.AddHttpContextAccessor();

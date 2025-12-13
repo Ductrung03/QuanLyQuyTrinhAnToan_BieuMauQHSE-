@@ -13,12 +13,12 @@ public class AppUser : BaseEntity
     /// <summary>
     /// Email
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>
     /// Họ và tên đầy đủ
     /// </summary>
-    public string FullName { get; set; } = string.Empty;
+    public string? FullName { get; set; }
 
     /// <summary>
     /// Mật khẩu đã hash (cho tương lai, hiện tại dùng Mock Auth)
@@ -38,17 +38,17 @@ public class AppUser : BaseEntity
     /// <summary>
     /// ID đơn vị mà user thuộc về
     /// </summary>
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
 
     /// <summary>
     /// Đơn vị mà user thuộc về
     /// </summary>
-    public Unit Unit { get; set; } = null!;
+    public Unit? Unit { get; set; }
 
     /// <summary>
     /// Vai trò của user (Admin, Manager, User)
     /// </summary>
-    public string Role { get; set; } = "User";
+    public string? Role { get; set; }
 
     /// <summary>
     /// Trạng thái hoạt động

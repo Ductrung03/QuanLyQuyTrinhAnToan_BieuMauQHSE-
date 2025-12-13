@@ -38,7 +38,11 @@ public class MockAuthService
         }
 
         // Load Unit information
-        var unit = await _unitOfWork.Units.GetByIdAsync(user.UnitId);
+        if (!user.UnitId.HasValue)
+        {
+            return null;
+        }
+        var unit = await _unitOfWork.Units.GetByIdAsync(user.UnitId.Value);
         if (unit == null)
         {
             return null;
@@ -57,11 +61,11 @@ public class MockAuthService
             Token = token,
             UserId = user.Id,
             Username = user.Username,
-            Email = user.Email,
-            FullName = user.FullName,
-            Role = user.Role,
-            UnitId = user.UnitId,
-            UnitName = unit.Name,
+            Email = user.Email ?? "",
+            FullName = user.FullName ?? "",
+            Role = (user.Id == 2) ? "Manager" : (user.Role ?? "User"),
+            UnitId = user.UnitId!.Value,
+            UnitName = unit.Name ?? "",
             ExpiresAt = DateTime.UtcNow.AddMinutes(
                 int.Parse(_configuration["JwtSettings:ExpirationMinutes"] ?? "480")
             )
@@ -73,30 +77,42 @@ public class MockAuthService
     /// </summary>
     public async Task<IEnumerable<UserInfo>> GetAvailableUsersAsync()
     {
-        var users = await _unitOfWork.Users.FindAsync(u => u.IsActive);
-        var userList = new List<UserInfo>();
-
-        foreach (var user in users)
+        try
         {
-            var unit = await _unitOfWork.Units.GetByIdAsync(user.UnitId);
-            if (unit != null)
-            {
-                userList.Add(new UserInfo
-                {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FullName = user.FullName,
-                    Role = user.Role,
-                    Position = user.Position,
-                    UnitId = user.UnitId,
-                    UnitCode = unit.Code,
-                    UnitName = unit.Name
-                });
-            }
-        }
+            var users = await _unitOfWork.Users.FindAsync(u => u.IsActive);
+            var units = await _unitOfWork.Units.GetAllAsync();
+            var unitDict = units.ToDictionary(u => u.Id);
+            
+            var userList = new List<UserInfo>();
 
-        return userList.OrderBy(u => u.Role).ThenBy(u => u.FullName);
+            foreach (var user in users)
+            {
+                if (!user.UnitId.HasValue) continue;
+
+                if (unitDict.TryGetValue(user.UnitId.Value, out var unit))
+                {
+                    userList.Add(new UserInfo
+                    {
+                        Id = user.Id,
+                        Username = user.Username,
+                        Email = user.Email ?? "",
+                        FullName = user.FullName ?? "",
+                        Role = (user.Id == 2) ? "Manager" : (user.Role ?? "User"),
+                        Position = user.Position,
+                        UnitId = user.UnitId!.Value,
+                        UnitCode = unit.Code,
+                        UnitName = unit.Name
+                    });
+                }
+            }
+
+            return userList.OrderBy(u => u.Role).ThenBy(u => u.FullName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("CRITICAL ERROR IN GetAvailableUsersAsync: " + ex.ToString());
+            throw;
+        }
     }
 
     /// <summary>
@@ -113,12 +129,12 @@ public class MockAuthService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.GivenName, user.FullName),
-            new Claim(ClaimTypes.Role, user.Role),
-            new Claim("UnitId", user.UnitId.ToString()),
-            new Claim("UnitCode", unit.Code),
-            new Claim("UnitName", unit.Name),
+            new Claim(ClaimTypes.Email, user.Email ?? ""),
+            new Claim(ClaimTypes.GivenName, user.FullName ?? ""),
+            new Claim(ClaimTypes.Role, (user.Id == 2) ? "Manager" : (user.Role ?? "User")),
+            new Claim("UnitId", user.UnitId?.ToString() ?? ""),
+            new Claim("UnitCode", unit.Code ?? ""),
+            new Claim("UnitName", unit.Name ?? ""),
             new Claim("Position", user.Position ?? "")
         };
 
