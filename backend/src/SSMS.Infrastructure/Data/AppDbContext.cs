@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<OpsSubmissionFile> OpsSubmissionFiles { get; set; }
     public DbSet<OpsSubmissionRecipient> OpsSubmissionRecipients { get; set; }
     public DbSet<OpsApproval> OpsApprovals { get; set; }
+    public DbSet<OpsAuditLog> OpsAuditLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -439,8 +440,7 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("OpsSubmissionRecipient");
             
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasColumnName("RecipientId");
+            entity.HasKey(e => e.RecipientId);
 
             entity.Property(e => e.RecipientType)
                 .IsRequired()
@@ -522,6 +522,69 @@ public class AppDbContext : DbContext
             // Indexes
             entity.HasIndex(e => e.SubmissionId);
             entity.HasIndex(e => e.ApproverUserId);
+        });
+
+        // Cấu hình cho OpsAuditLog
+        modelBuilder.Entity<OpsAuditLog>(entity =>
+        {
+            entity.ToTable("OpsAuditLog");
+            
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("LogId");
+
+            entity.Property(e => e.UserName)
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.TargetType)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.TargetName)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Detail)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.OldData)
+                .HasColumnType("nvarchar(max)");
+
+            entity.Property(e => e.NewData)
+                .HasColumnType("nvarchar(max)");
+
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.UserAgent)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.ActionTime)
+                .HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
+            // Relationship
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // BaseEntity fields
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false);
+
+            // Indexes for better query performance
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Action);
+            entity.HasIndex(e => e.TargetType);
+            entity.HasIndex(e => e.ActionTime);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
         // Seed initial data - DISABLED vì database đã có sẵn

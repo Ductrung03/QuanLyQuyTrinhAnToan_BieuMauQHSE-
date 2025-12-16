@@ -20,10 +20,15 @@ async function apiFetch<T>(
 ): Promise<T> {
   const token = getAuthToken();
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
   };
+
+  // Merge any existing headers from options
+  if (options.headers) {
+    const optionHeaders = options.headers as Record<string, string>;
+    Object.assign(headers, optionHeaders);
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -88,7 +93,7 @@ export const api = {
   upload: async <T>(endpoint: string, formData: FormData): Promise<T> => {
     const token = getAuthToken();
 
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }

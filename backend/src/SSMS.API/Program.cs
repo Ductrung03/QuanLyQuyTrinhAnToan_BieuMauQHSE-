@@ -150,6 +150,8 @@ builder.Services.AddScoped<SSMS.Application.Services.IProcedureService, SSMS.App
 builder.Services.AddScoped<SSMS.Application.Services.ITemplateService, SSMS.Application.Services.TemplateService>();
 builder.Services.AddScoped<SSMS.Application.Services.ISubmissionService, SSMS.Application.Services.SubmissionService>();
 builder.Services.AddScoped<SSMS.Application.Services.IApprovalService, SSMS.Application.Services.ApprovalService>();
+builder.Services.AddScoped<SSMS.Application.Services.IAuditLogService, SSMS.Infrastructure.Services.AuditLogService>();
+builder.Services.AddScoped<SSMS.Application.Services.IDashboardService, SSMS.Infrastructure.Services.DashboardService>();
 
 // Add HttpContextAccessor for accessing HttpContext in services
 builder.Services.AddHttpContextAccessor();

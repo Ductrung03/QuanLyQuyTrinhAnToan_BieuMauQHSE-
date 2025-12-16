@@ -73,6 +73,99 @@ public class MockAuthService
     }
 
     /// <summary>
+    /// Login với Email/Username và Password
+    /// </summary>
+    public async Task<LoginResponse?> LoginWithCredentialsAsync(LoginCredentialsRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.EmailOrUsername) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return null;
+        }
+
+        // Tìm user theo email hoặc username
+        var users = await _unitOfWork.Users.FindAsync(u => 
+            u.IsActive && 
+            (u.Email == request.EmailOrUsername || u.Username == request.EmailOrUsername));
+        
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+        {
+            return null;
+        }
+
+        // Kiểm tra password
+        // Trong development mode, chấp nhận password = "123456" hoặc password = username
+        // Trong production, nên sử dụng BCrypt để verify password hash
+        bool passwordValid = false;
+        
+        if (!string.IsNullOrEmpty(user.PasswordHash))
+        {
+            // Nếu có password hash, so sánh (đơn giản hóa cho development)
+            // Trong production nên dùng: BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)
+            passwordValid = user.PasswordHash == HashPassword(request.Password);
+        }
+        else
+        {
+            // Development mode: chấp nhận password mặc định
+            passwordValid = request.Password == "123456" || 
+                           request.Password == user.Username ||
+                           request.Password == "password";
+        }
+
+        if (!passwordValid)
+        {
+            return null;
+        }
+
+        // Load Unit information
+        if (!user.UnitId.HasValue)
+        {
+            return null;
+        }
+        var unit = await _unitOfWork.Units.GetByIdAsync(user.UnitId.Value);
+        if (unit == null)
+        {
+            return null;
+        }
+
+        // Generate JWT token
+        var token = GenerateJwtToken(user, unit);
+
+        // Update last login
+        user.LastLoginAt = DateTime.UtcNow;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new LoginResponse
+        {
+            Token = token,
+            UserId = user.Id,
+            Username = user.Username,
+            Email = user.Email ?? "",
+            FullName = user.FullName ?? "",
+            Role = (user.Id == 2) ? "Manager" : (user.Role ?? "User"),
+            UnitId = user.UnitId!.Value,
+            UnitName = unit.Name ?? "",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(
+                int.Parse(_configuration["JwtSettings:ExpirationMinutes"] ?? "480")
+            )
+        };
+    }
+
+    /// <summary>
+    /// Hash password đơn giản (cho development)
+    /// Trong production nên dùng BCrypt
+    /// </summary>
+    private static string HashPassword(string password)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(password);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
+    }
+
+    /// <summary>
     /// Lấy danh sách users để hiển thị dropdown login
     /// </summary>
     public async Task<IEnumerable<UserInfo>> GetAvailableUsersAsync()

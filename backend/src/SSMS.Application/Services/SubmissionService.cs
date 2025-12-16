@@ -208,7 +208,7 @@ public class SubmissionService : ISubmissionService
             var user = await _unitOfWork.Users.GetByIdAsync(r.RecipientUserId);
             recipientDtos.Add(new SubmissionRecipientDto
             {
-                Id = r.Id,
+                Id = r.RecipientId,
                 RecipientUserId = r.RecipientUserId,
                 RecipientUserName = user?.FullName ?? "",
                 RecipientType = r.RecipientType

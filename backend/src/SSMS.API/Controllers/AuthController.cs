@@ -88,6 +88,55 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Login với Email/Username và Password
+    /// </summary>
+    [HttpPost("login-credentials")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginWithCredentials([FromBody] LoginCredentialsRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.EmailOrUsername) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new
+                {
+                    Success = false,
+                    Message = "Vui lòng nhập email/tên đăng nhập và mật khẩu"
+                });
+            }
+
+            var result = await _authService.LoginWithCredentialsAsync(request);
+
+            if (result == null)
+            {
+                return BadRequest(new
+                {
+                    Success = false,
+                    Message = "Email/tên đăng nhập hoặc mật khẩu không đúng"
+                });
+            }
+
+            _logger.LogInformation("User {Username} logged in with credentials successfully", result.Username);
+
+            return Ok(new
+            {
+                Success = true,
+                Data = result,
+                Message = "Đăng nhập thành công"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during login with credentials");
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Lỗi khi đăng nhập"
+            });
+        }
+    }
+
+    /// <summary>
     /// Lấy thông tin user hiện tại
     /// </summary>
     [HttpGet("me")]

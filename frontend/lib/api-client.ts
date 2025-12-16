@@ -22,6 +22,11 @@ export interface LoginRequest {
   userId: number;
 }
 
+export interface LoginCredentialsRequest {
+  emailOrUsername: string;
+  password: string;
+}
+
 export interface LoginResponse {
   token: string;
   userId: number;
@@ -32,6 +37,63 @@ export interface LoginResponse {
   unitId: number;
   unitName: string;
   expiresAt: string;
+}
+
+export interface Procedure {
+  id: number;
+  code: string;
+  name: string;
+  version?: string;
+  state: string;
+  description?: string;
+  ownerUserId?: number;
+  ownerUserName?: string;
+  documentCount?: number;
+  templateCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProcedureFormData {
+  code: string;
+  name: string;
+  version?: string;
+  description?: string;
+}
+
+export interface Template {
+  id: number;
+  procedureId: number;
+  name: string;
+  templateType: string;
+  templateKey?: string;
+  templateNo?: string;
+  filePath?: string;
+  createdAt?: string;
+}
+
+export interface Submission {
+  id: number;
+  procedureId: number;
+  templateId?: number;
+  title: string;
+  content?: string;
+  state: string;
+  submittedByUserId: number;
+  submittedByUserName?: string;
+  submittedAt: string;
+  createdAt?: string;
+}
+
+export interface Approval {
+  id: number;
+  submissionId: number;
+  submissionTitle?: string;
+  approverUserId: number;
+  approverUserName?: string;
+  status: string;
+  note?: string;
+  createdAt?: string;
 }
 
 class ApiClient {
@@ -80,7 +142,37 @@ class ApiClient {
         headers: this.getHeaders(),
       });
 
-      return await response.json();
+      // Check if response is OK and has content
+      if (!response.ok) {
+        if (response.status === 401) {
+          return {
+            success: false,
+            message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
+          };
+        }
+        return {
+          success: false,
+          message: `Lỗi ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      // Check if response has content before parsing JSON
+      const text = await response.text();
+      if (!text) {
+        return {
+          success: false,
+          message: 'Server trả về response trống',
+        };
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        return {
+          success: false,
+          message: 'Server trả về dữ liệu không hợp lệ',
+        };
+      }
     } catch (error) {
       console.error('API GET Error:', error);
       return {
@@ -90,7 +182,7 @@ class ApiClient {
     }
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'POST',
@@ -108,7 +200,7 @@ class ApiClient {
     }
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'PUT',
@@ -156,8 +248,16 @@ class ApiClient {
     return response;
   }
 
-  async getCurrentUser(): Promise<ApiResponse<any>> {
-    return this.get<any>('/auth/me');
+  async loginWithCredentials(request: LoginCredentialsRequest): Promise<ApiResponse<LoginResponse>> {
+    const response = await this.post<LoginResponse>('/auth/login-credentials', request);
+    if (response.success && response.data?.token) {
+      this.setToken(response.data.token);
+    }
+    return response;
+  }
+
+  async getCurrentUser(): Promise<ApiResponse<UserInfo>> {
+    return this.get<UserInfo>('/auth/me');
   }
 
   logout() {
@@ -165,24 +265,24 @@ class ApiClient {
   }
 
   // Procedures endpoints
-  async getProcedures(): Promise<ApiResponse<any[]>> {
-    return this.get<any[]>('/procedures');
+  async getProcedures(): Promise<ApiResponse<Procedure[]>> {
+    return this.get<Procedure[]>('/procedures');
   }
 
-  async getProcedureById(id: number): Promise<ApiResponse<any>> {
-    return this.get<any>(`/procedures/${id}`);
+  async getProcedureById(id: number): Promise<ApiResponse<Procedure>> {
+    return this.get<Procedure>(`/procedures/${id}`);
   }
 
-  async createProcedure(data: any): Promise<ApiResponse<any>> {
-    return this.post<any>('/procedures', data);
+  async createProcedure(data: ProcedureFormData): Promise<ApiResponse<Procedure>> {
+    return this.post<Procedure>('/procedures', data);
   }
 
-  async updateProcedure(id: number, data: any): Promise<ApiResponse<any>> {
-    return this.put<any>(`/procedures/${id}`, data);
+  async updateProcedure(id: number, data: ProcedureFormData): Promise<ApiResponse<Procedure>> {
+    return this.put<Procedure>(`/procedures/${id}`, data);
   }
 
-  async deleteProcedure(id: number): Promise<ApiResponse<any>> {
-    return this.delete<any>(`/procedures/${id}`);
+  async deleteProcedure(id: number): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/procedures/${id}`);
   }
 
   async uploadProcedureDocument(procedureId: number, file: File, docVersion?: string): Promise<ApiResponse<any>> {
@@ -349,6 +449,105 @@ class ApiClient {
   async rejectSubmission(id: number, note?: string): Promise<ApiResponse<any>> {
     return this.post<any>(`/approvals/${id}/reject`, { note });
   }
+
+  // Dashboard endpoints
+  async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
+    return this.get<DashboardStats>('/dashboard/stats');
+  }
+
+  async getRecentActivities(count: number = 10): Promise<ApiResponse<RecentActivity[]>> {
+    return this.get<RecentActivity[]>(`/dashboard/recent-activities?count=${count}`);
+  }
+
+  // Audit Log endpoints
+  async getAuditLogs(filter: AuditLogFilter): Promise<ApiResponse<AuditLogPagedResult>> {
+    const params = new URLSearchParams();
+    if (filter.userId) params.append('userId', filter.userId.toString());
+    if (filter.action) params.append('action', filter.action);
+    if (filter.targetType) params.append('targetType', filter.targetType);
+    if (filter.fromDate) params.append('fromDate', filter.fromDate);
+    if (filter.toDate) params.append('toDate', filter.toDate);
+    params.append('page', (filter.page || 1).toString());
+    params.append('pageSize', (filter.pageSize || 50).toString());
+    
+    return this.get<AuditLogPagedResult>(`/auditlogs?${params.toString()}`);
+  }
+
+  async getAuditActionTypes(): Promise<ApiResponse<string[]>> {
+    return this.get<string[]>('/auditlogs/action-types');
+  }
+
+  async getAuditTargetTypes(): Promise<ApiResponse<string[]>> {
+    return this.get<string[]>('/auditlogs/target-types');
+  }
+
+  // Units endpoints
+  async getUnits(): Promise<ApiResponse<Unit[]>> {
+    return this.get<Unit[]>('/auth/units');
+  }
+}
+
+// Additional types
+export interface DashboardStats {
+  totalProcedures: number;
+  totalTemplates: number;
+  totalSubmissions: number;
+  pendingApprovals: number;
+  approvedSubmissions: number;
+  rejectedSubmissions: number;
+  totalUsers: number;
+  totalUnits: number;
+  draftProcedures: number;
+  submittedProcedures: number;
+  approvedProcedures: number;
+  recentActivities: RecentActivity[];
+}
+
+export interface RecentActivity {
+  time: string;
+  userName: string;
+  action: string;
+  target: string;
+  detail?: string;
+}
+
+export interface AuditLogFilter {
+  userId?: number;
+  action?: string;
+  targetType?: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AuditLog {
+  id: number;
+  userId?: number;
+  userName?: string;
+  action: string;
+  targetType?: string;
+  targetId?: number;
+  targetName?: string;
+  detail?: string;
+  ipAddress?: string;
+  actionTime: string;
+}
+
+export interface AuditLogPagedResult {
+  items: AuditLog[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface Unit {
+  id: number;
+  code: string;
+  name: string;
+  type: string;
 }
 
 export const apiClient = new ApiClient();
+

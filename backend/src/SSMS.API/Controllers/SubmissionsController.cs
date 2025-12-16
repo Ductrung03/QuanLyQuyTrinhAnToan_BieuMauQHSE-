@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SSMS.Application.DTOs;
@@ -32,7 +33,7 @@ public class SubmissionsController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = GetCurrentUserId();
             var submissions = await _submissionService.GetMySubmissionsAsync(userId);
             
             return Ok(new
@@ -98,7 +99,7 @@ public class SubmissionsController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = GetCurrentUserId();
             var submission = await _submissionService.CreateAsync(dto, userId, files);
 
             return CreatedAtAction(
@@ -138,7 +139,7 @@ public class SubmissionsController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = GetCurrentUserId();
             await _submissionService.RecallAsync(id, userId, dto.Reason);
 
             return Ok(new
@@ -190,7 +191,7 @@ public class SubmissionsController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = GetCurrentUserId();
             var canRecall = await _submissionService.CanRecallAsync(id, userId);
 
             return Ok(new
@@ -208,5 +209,16 @@ public class SubmissionsController : ControllerBase
                 Message = "Lỗi khi kiểm tra trạng thái thu hồi"
             });
         }
+    }
+
+    private int GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            // Fallback for development/testing if claims are missing, or strict throw
+            // Given MockAuthService sets NameIdentifier, we should expect it.
+             throw new UnauthorizedAccessException("Không xác định được User ID");
+            
+        return int.Parse(userIdClaim.Value);
     }
 }

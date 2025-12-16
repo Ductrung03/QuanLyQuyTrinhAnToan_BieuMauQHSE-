@@ -17,14 +17,18 @@ public class ApprovalService : IApprovalService
     {
         // Find tasks where user is Approver AND status is Submitted
         // Using navigation property query
-        var submissions = await _unitOfWork.Submissions
-            .FindAsync(s => s.Status == "Submitted" && s.Procedure.ApproverUserId == userId);
+        // Find all submitted tasks
+        var submissions = await _unitOfWork.Submissions.FindAsync(s => s.Status == "Submitted");
 
         var result = new List<SubmissionDto>();
         foreach (var sub in submissions)
         {
             // Map manually
             var procedure = await _unitOfWork.Procedures.GetByIdAsync(sub.ProcedureId);
+            
+            // Check if current user is the approver
+            if (procedure == null || procedure.ApproverUserId != userId) continue;
+
             var submittedByUser = await _unitOfWork.Users.GetByIdAsync(sub.SubmittedByUserId);
             
             // We optimize by not loading files/recipients for the list view if performance is key, 
@@ -39,8 +43,8 @@ public class ApprovalService : IApprovalService
             {
                 Id = sub.Id,
                 ProcedureId = sub.ProcedureId,
-                ProcedureName = procedure?.Name ?? "",
-                ProcedureCode = procedure?.Code ?? "",
+                ProcedureName = procedure.Name,
+                ProcedureCode = procedure.Code,
                 Title = sub.Title,
                 Content = sub.Content, // Maybe summary?
                 Status = sub.Status,

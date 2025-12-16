@@ -1,34 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
-import { Plus, FileText, Edit, Trash2, Upload, Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { apiClient, Procedure } from '@/lib/api-client';
+import { Plus, FileText, Edit, Trash2 } from 'lucide-react';
 
 export default function ProceduresPage() {
-    const [procedures, setProcedures] = useState<any[]>([]);
+    const [procedures, setProcedures] = useState<Procedure[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [selectedProcedure, setSelectedProcedure] = useState<any>(null);
+    const [selectedProcedure, setSelectedProcedure] = useState<Procedure | null>(null);
 
-    useEffect(() => {
-        loadProcedures();
-    }, []);
-
-    const loadProcedures = async () => {
+    const loadProcedures = useCallback(async () => {
         setLoading(true);
         const response = await apiClient.getProcedures();
         if (response.success && response.data) {
             setProcedures(response.data);
         }
         setLoading(false);
-    };
+    }, []);
+
+    useEffect(() => {
+        loadProcedures();
+    }, [loadProcedures]);
+
+
 
     const handleCreate = () => {
         setSelectedProcedure(null);
         setShowCreateModal(true);
     };
 
-    const handleEdit = (procedure: any) => {
+    const handleEdit = (procedure: Procedure) => {
         setSelectedProcedure(procedure);
         setShowCreateModal(true);
     };
@@ -45,8 +47,8 @@ export default function ProceduresPage() {
         }
     };
 
-    const getStateColor = (state: string) => {
-        const colors: any = {
+    const getStateColor = (state: string): string => {
+        const colors: Record<string, string> = {
             Draft: 'bg-gray-100 text-gray-800',
             Submitted: 'bg-blue-100 text-blue-800',
             Approved: 'bg-green-100 text-green-800',
@@ -244,7 +246,7 @@ function ProcedureModal({
     onClose,
     onSuccess,
 }: {
-    procedure: any;
+    procedure: Procedure | null;
     onClose: () => void;
     onSuccess: () => void;
 }) {

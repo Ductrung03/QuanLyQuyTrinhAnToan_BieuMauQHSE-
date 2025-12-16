@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,7 +11,9 @@ import {
     Menu,
     X,
     LogOut,
-    User
+    User,
+    Clock,
+    Settings
 } from 'lucide-react';
 
 interface UserData {
@@ -19,6 +21,15 @@ interface UserData {
     role: string;
     unitName: string;
     email: string;
+}
+
+function parseUserData(data: string | null): UserData | null {
+    if (!data) return null;
+    try {
+        return JSON.parse(data) as UserData;
+    } catch {
+        return null;
+    }
 }
 
 export default function DashboardLayout({
@@ -30,6 +41,7 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const [user, setUser] = useState<UserData | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
         // Kiểm tra authentication
@@ -41,24 +53,23 @@ export default function DashboardLayout({
             return;
         }
 
-        setUser(JSON.parse(userData));
+        const parsedUser = parseUserData(userData);
+        if (parsedUser) {
+            setUser(parsedUser);
+        } else {
+            router.push('/login');
+            return;
+        }
+        setIsInitialized(true);
     }, [router]);
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         router.push('/login');
-    };
+    }, [router]);
 
-    if (!user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-gray-600">Đang tải...</div>
-            </div>
-        );
-    }
-
-    const menuItems = [
+    const menuItems = useMemo(() => [
         {
             title: 'Tổng quan',
             icon: LayoutDashboard,
@@ -83,11 +94,32 @@ export default function DashboardLayout({
             href: '/dashboard/approvals',
             roles: ['Admin', 'Manager'],
         },
-    ];
+        {
+            title: 'Nhật ký',
+            icon: Clock,
+            href: '/dashboard/audit',
+            roles: ['Admin', 'Manager'],
+        },
+        {
+            title: 'Cài đặt',
+            icon: Settings,
+            href: '/dashboard/settings',
+            roles: ['Admin'],
+        },
+    ], []);
 
-    const filteredMenuItems = menuItems.filter((item) =>
-        item.roles.includes(user.role)
-    );
+    const filteredMenuItems = useMemo(() => {
+        if (!user) return [];
+        return menuItems.filter((item) => item.roles.includes(user.role));
+    }, [menuItems, user]);
+
+    if (!isInitialized || !user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-gray-600">Đang tải...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -115,8 +147,8 @@ export default function DashboardLayout({
                                         <Link
                                             href={item.href}
                                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                                    ? 'bg-blue-50 text-blue-600 font-medium'
-                                                    : 'text-gray-700 hover:bg-gray-50'
+                                                ? 'bg-blue-50 text-blue-600 font-medium'
+                                                : 'text-gray-700 hover:bg-gray-50'
                                                 }`}
                                         >
                                             <Icon className="w-5 h-5" />

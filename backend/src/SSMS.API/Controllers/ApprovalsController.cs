@@ -22,11 +22,26 @@ public class ApprovalsController : ControllerBase
     /// Lấy danh sách task cần phê duyệt của User hiện tại
     /// </summary>
     [HttpGet("pending")]
-    public async Task<ActionResult<IEnumerable<SubmissionDto>>> GetPendingApprovals()
+    public async Task<IActionResult> GetPendingApprovals()
     {
-        var userId = GetCurrentUserId();
-        var pending = await _approvalService.GetPendingApprovalsAsync(userId);
-        return Ok(pending);
+        try
+        {
+            var userId = GetCurrentUserId();
+            var pending = await _approvalService.GetPendingApprovalsAsync(userId);
+            return Ok(new
+            {
+                Success = true,
+                Data = pending
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Lỗi khi lấy danh sách phê duyệt: " + ex.Message
+            });
+        }
     }
 
     /// <summary>
@@ -39,11 +54,15 @@ public class ApprovalsController : ControllerBase
         {
             var userId = GetCurrentUserId();
             await _approvalService.ApproveAsync(id, userId, dto.Note);
-            return Ok(new { message = "Đã phê duyệt biểu mẫu thành công" });
+            return Ok(new 
+            { 
+                Success = true,
+                Message = "Đã phê duyệt biểu mẫu thành công" 
+            });
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(new { Success = false, Message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -51,11 +70,11 @@ public class ApprovalsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { Success = false, Message = ex.Message });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi server", error = ex.Message });
+            return StatusCode(500, new { Success = false, Message = "Lỗi server", Error = ex.Message });
         }
     }
 
@@ -68,15 +87,16 @@ public class ApprovalsController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            // Reject requires a reason? User Story doesn't strictly say, but good practice.
-            // If explicit validation needed, check !string.IsNullOrEmpty(dto.Note)
-            
             await _approvalService.RejectAsync(id, userId, dto.Note);
-            return Ok(new { message = "Đã từ chối biểu mẫu" });
+            return Ok(new 
+            { 
+                Success = true,
+                Message = "Đã từ chối biểu mẫu" 
+            });
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(new { Success = false, Message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -84,11 +104,11 @@ public class ApprovalsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { Success = false, Message = ex.Message });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Lỗi server", error = ex.Message });
+            return StatusCode(500, new { Success = false, Message = "Lỗi server", Error = ex.Message });
         }
     }
 

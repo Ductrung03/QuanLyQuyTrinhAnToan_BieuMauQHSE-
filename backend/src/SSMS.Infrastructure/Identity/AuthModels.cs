@@ -9,6 +9,15 @@ public class MockLoginRequest
 }
 
 /// <summary>
+/// DTO cho Login với Email/Username và Password
+/// </summary>
+public class LoginCredentialsRequest
+{
+    public string EmailOrUsername { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// DTO cho Login Response
 /// </summary>
 public class LoginResponse
