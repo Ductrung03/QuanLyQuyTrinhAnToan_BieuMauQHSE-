@@ -43,7 +43,7 @@ public class DashboardService : IDashboardService
             RejectedSubmissions = await _context.OpsSubmissions.CountAsync(s => s.Status == "Rejected"),
 
             // User and Unit statistics
-            TotalUsers = await _context.AppUsers.CountAsync(),
+            TotalUsers = await _context.AppUsers.CountAsync(u => u.IsActive && !u.IsDeleted),
             TotalUnits = await _context.Units.CountAsync()
         };
 

@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "ssms-auth",
+          "value": "{\"state\":{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJhZG1pbkBzc21zLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2dpdmVubmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBo4buHIHRo4buRbmciLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsIlVuaXRJZCI6IjEiLCJVbml0Q29kZSI6IkhRIiwiVW5pdE5hbWUiOiJUcuG7pSBz4bufIGNow61uaCIsIlBvc2l0aW9uIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJleHAiOjE3Njk2MjczNDIsImlzcyI6IlNTTVMtQVBJIiwiYXVkIjoiU1NNUy1DbGllbnQifQ.upghkpSyCurWLjSA_EnlvemDDfwOOWB-0sOFrvRIss4\",\"user\":{\"id\":1,\"userName\":\"admin\",\"fullName\":\"Quản trị viên hệ thống\",\"email\":\"admin@ssms.com\",\"role\":\"Admin\",\"unitId\":1,\"unitName\":\"Trụ sở chính\"},\"currentUnitId\":1,\"isAuthenticated\":true},\"version\":0}"
+        }
+      ]
+    }
+  ]
+}

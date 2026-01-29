@@ -80,6 +80,9 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("User");
 
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("UnitId")
                         .HasColumnType("int");
 
@@ -98,9 +101,124 @@ namespace SSMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RoleId");
+
                     b.HasIndex("UnitId");
 
                     b.ToTable("AppUser", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(769),
+                            Email = "admin@ssms.com",
+                            FullName = "Quản trị viên hệ thống",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Position = "System Administrator",
+                            Role = "Admin",
+                            UnitId = 1,
+                            Username = "admin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(773),
+                            Email = "qhse.manager@ssms.com",
+                            FullName = "Nguyễn Văn An",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234567",
+                            Position = "QHSE Manager",
+                            Role = "Manager",
+                            UnitId = 4,
+                            Username = "qhse.manager"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(775),
+                            Email = "ops.manager@ssms.com",
+                            FullName = "Trần Thị Bình",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234568",
+                            Position = "Operations Manager",
+                            Role = "Manager",
+                            UnitId = 5,
+                            Username = "ops.manager"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(777),
+                            Email = "captain.ship001@ssms.com",
+                            FullName = "Lê Văn Cường",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234569",
+                            Position = "Ship Captain",
+                            Role = "User",
+                            UnitId = 2,
+                            Username = "ship001.captain"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(779),
+                            Email = "officer.ship001@ssms.com",
+                            FullName = "Phạm Thị Dung",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234570",
+                            Position = "Safety Officer",
+                            Role = "User",
+                            UnitId = 2,
+                            Username = "ship001.officer"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(780),
+                            Email = "captain.ship002@ssms.com",
+                            FullName = "Hoàng Văn Em",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234571",
+                            Position = "Ship Captain",
+                            Role = "User",
+                            UnitId = 3,
+                            Username = "ship002.captain"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(782),
+                            Email = "officer.ship002@ssms.com",
+                            FullName = "Đỗ Thị Phương",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234572",
+                            Position = "Safety Officer",
+                            Role = "User",
+                            UnitId = 3,
+                            Username = "ship002.officer"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(784),
+                            Email = "qhse.staff@ssms.com",
+                            FullName = "Vũ Văn Giang",
+                            IsActive = true,
+                            IsDeleted = false,
+                            PhoneNumber = "0901234573",
+                            Position = "QHSE Staff",
+                            Role = "User",
+                            UnitId = 4,
+                            Username = "qhse.staff"
+                        });
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsApproval", b =>
@@ -433,6 +551,10 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(30)")
                         .HasDefaultValue("Submitted");
 
+                    b.Property<string>("SubmissionCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2(0)")
@@ -530,12 +652,11 @@ namespace SSMS.Infrastructure.Migrations
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsSubmissionRecipient", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("RecipientId");
+                    b.Property<int>("SubmissionId")
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -558,6 +679,10 @@ namespace SSMS.Infrastructure.Migrations
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2(0)");
 
+                    b.Property<string>("RecipientRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("RecipientType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -565,10 +690,7 @@ namespace SSMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasDefaultValue("CC");
 
-                    b.Property<int>("RecipientUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SubmissionId")
+                    b.Property<int?>("RecipientUserId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -577,11 +699,11 @@ namespace SSMS.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("SubmissionId", "UnitId");
 
                     b.HasIndex("RecipientUserId");
 
-                    b.HasIndex("SubmissionId");
+                    b.HasIndex("UnitId");
 
                     b.ToTable("OpsSubmissionRecipient", (string)null);
                 });
@@ -671,6 +793,142 @@ namespace SSMS.Infrastructure.Migrations
                     b.ToTable("OpsTemplate", (string)null);
                 });
 
+            modelBuilder.Entity("SSMS.Core.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("PermissionId");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Module");
+
+                    b.ToTable("Permission", (string)null);
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("RoleId");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSystemRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Role", (string)null);
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.RolePermission", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermission", (string)null);
+                });
+
             modelBuilder.Entity("SSMS.Core.Entities.Unit", b =>
                 {
                     b.Property<int>("Id")
@@ -733,14 +991,131 @@ namespace SSMS.Infrastructure.Migrations
                     b.HasIndex("ParentUnitId");
 
                     b.ToTable("Unit", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "HQ",
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(437),
+                            Description = "Văn phòng trụ sở chính",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Trụ sở chính",
+                            Type = "Headquarters"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "SHIP001",
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(443),
+                            Description = "Tàu khai thác số 1",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Tàu Hải Phòng 01",
+                            ParentUnitId = 1,
+                            Type = "Ship"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "SHIP002",
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(445),
+                            Description = "Tàu khai thác số 2",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Tàu Hải Phòng 02",
+                            ParentUnitId = 1,
+                            Type = "Ship"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "DEPT-QHSE",
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(447),
+                            Description = "Phòng Quản lý Chất lượng, An toàn và Môi trường",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Phòng QHSE",
+                            ParentUnitId = 1,
+                            Type = "Department"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "DEPT-OPS",
+                            CreatedAt = new DateTime(2026, 1, 28, 8, 21, 2, 841, DateTimeKind.Utc).AddTicks(449),
+                            Description = "Phòng Khai thác và Vận hành",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Phòng Khai thác",
+                            ParentUnitId = 1,
+                            Type = "Department"
+                        });
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.UserPermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("UserPermissionId");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsGranted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("UserId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("UserPermission", (string)null);
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.AppUser", b =>
                 {
+                    b.HasOne("SSMS.Core.Entities.Role", "RoleEntity")
+                        .WithMany("Users")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SSMS.Core.Entities.Unit", "Unit")
                         .WithMany("Users")
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RoleEntity");
 
                     b.Navigation("Unit");
                 });
@@ -851,8 +1226,7 @@ namespace SSMS.Infrastructure.Migrations
                     b.HasOne("SSMS.Core.Entities.AppUser", "RecipientUser")
                         .WithMany()
                         .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SSMS.Core.Entities.OpsSubmission", "Submission")
                         .WithMany("Recipients")
@@ -860,9 +1234,17 @@ namespace SSMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SSMS.Core.Entities.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("RecipientUser");
 
                     b.Navigation("Submission");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsTemplate", b =>
@@ -876,6 +1258,25 @@ namespace SSMS.Infrastructure.Migrations
                     b.Navigation("Procedure");
                 });
 
+            modelBuilder.Entity("SSMS.Core.Entities.RolePermission", b =>
+                {
+                    b.HasOne("SSMS.Core.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SSMS.Core.Entities.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("SSMS.Core.Entities.Unit", b =>
                 {
                     b.HasOne("SSMS.Core.Entities.Unit", "ParentUnit")
@@ -884,6 +1285,30 @@ namespace SSMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentUnit");
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.UserPermission", b =>
+                {
+                    b.HasOne("SSMS.Core.Entities.Permission", "Permission")
+                        .WithMany("UserPermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SSMS.Core.Entities.AppUser", "User")
+                        .WithMany("UserPermissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.AppUser", b =>
+                {
+                    b.Navigation("UserPermissions");
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.OpsProcedure", b =>
@@ -898,6 +1323,20 @@ namespace SSMS.Infrastructure.Migrations
                     b.Navigation("Files");
 
                     b.Navigation("Recipients");
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserPermissions");
+                });
+
+            modelBuilder.Entity("SSMS.Core.Entities.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("SSMS.Core.Entities.Unit", b =>

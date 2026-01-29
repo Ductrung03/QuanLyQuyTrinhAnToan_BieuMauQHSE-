@@ -16,8 +16,13 @@ public interface IUnitOfWork : IDisposable
     IRepository<OpsSubmissionFile> SubmissionFiles { get; }
     IRepository<OpsSubmissionRecipient> SubmissionRecipients { get; }
     IRepository<OpsApproval> Approvals { get; }
-    
-    Task<int> SaveChangesAsync();
+
+    /// <summary>
+    /// Get repository for any entity type
+    /// </summary>
+    IRepository<TEntity> GetRepository<TEntity>() where TEntity : class;
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();

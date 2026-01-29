@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.API.Helpers;
 using SSMS.Application.DTOs;
 using SSMS.Application.Services;
 
@@ -12,10 +13,12 @@ namespace SSMS.API.Controllers;
 public class ApprovalsController : ControllerBase
 {
     private readonly IApprovalService _approvalService;
+    private readonly IAuditLogService _auditLogService;
 
-    public ApprovalsController(IApprovalService approvalService)
+    public ApprovalsController(IApprovalService approvalService, IAuditLogService auditLogService)
     {
         _approvalService = approvalService;
+        _auditLogService = auditLogService;
     }
 
     /// <summary>
@@ -54,6 +57,14 @@ public class ApprovalsController : ControllerBase
         {
             var userId = GetCurrentUserId();
             await _approvalService.ApproveAsync(id, userId, dto.Note);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Approve",
+                targetType: "Submission",
+                targetId: id,
+                detail: dto.Note);
             return Ok(new 
             { 
                 Success = true,
@@ -88,6 +99,14 @@ public class ApprovalsController : ControllerBase
         {
             var userId = GetCurrentUserId();
             await _approvalService.RejectAsync(id, userId, dto.Note);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Reject",
+                targetType: "Submission",
+                targetId: id,
+                detail: dto.Note);
             return Ok(new 
             { 
                 Success = true,

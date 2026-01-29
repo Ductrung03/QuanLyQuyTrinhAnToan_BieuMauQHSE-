@@ -46,9 +46,25 @@ public class AppUser : BaseEntity
     public Unit? Unit { get; set; }
 
     /// <summary>
-    /// Vai trò của user (Admin, Manager, User)
+    /// Vai trò của user (Admin, Manager, User) - DEPRECATED: Sử dụng RoleId thay thế
     /// </summary>
+    [Obsolete("Use RoleId instead")]
     public string? Role { get; set; }
+
+    /// <summary>
+    /// ID vai trò (FK to Role table)
+    /// </summary>
+    public int? RoleId { get; set; }
+
+    /// <summary>
+    /// Navigation: Role của user
+    /// </summary>
+    public Role? RoleEntity { get; set; }
+
+    /// <summary>
+    /// Navigation: User permission overrides
+    /// </summary>
+    public ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
 
     /// <summary>
     /// Trạng thái hoạt động

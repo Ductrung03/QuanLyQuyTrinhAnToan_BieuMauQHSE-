@@ -52,11 +52,29 @@ public class TemplateService : ITemplateService
             throw new KeyNotFoundException($"Không tìm thấy quy trình với ID {dto.ProcedureId}");
         }
 
+        // Tự động sinh mã biểu mẫu nếu không có
+        string templateNo;
+        if (string.IsNullOrWhiteSpace(dto.TemplateNo))
+        {
+            templateNo = await GenerateTemplateNoAsync(procedure.Code ?? string.Empty, dto.TemplateType);
+        }
+        else
+        {
+            templateNo = dto.TemplateNo;
+        }
+
+        // Tự động sinh TemplateKey nếu không có
+        string templateKey = dto.TemplateKey ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(templateKey))
+        {
+            templateKey = $"T{DateTime.UtcNow:yyMMddHHmmss}";
+        }
+
         var template = new OpsTemplate
         {
             ProcedureId = dto.ProcedureId,
-            TemplateKey = dto.TemplateKey,
-            TemplateNo = dto.TemplateNo,
+            TemplateKey = templateKey,
+            TemplateNo = templateNo,
             Name = dto.Name,
             TemplateType = dto.TemplateType,
             State = "Draft",
@@ -73,6 +91,37 @@ public class TemplateService : ITemplateService
         await _unitOfWork.SaveChangesAsync();
 
         return MapToDto(template);
+    }
+
+    /// <summary>
+    /// Tự động sinh mã biểu mẫu theo format FM-OPS-XX hoặc CL-OPS-XX
+    /// </summary>
+    private async Task<string> GenerateTemplateNoAsync(string procedureCode, string templateType)
+    {
+        // Prefix: FM cho Form, CL cho Checklist
+        var prefix = templateType == "Checklist" ? "CL" : "FM";
+        var baseCode = $"{prefix}-{procedureCode}";
+
+        // Lấy tất cả templates của procedure này
+        var allTemplates = await _unitOfWork.Templates.GetAllAsync();
+
+        // Tìm số lớn nhất hiện có
+        int maxNumber = 0;
+        foreach (var tpl in allTemplates)
+        {
+            if (!string.IsNullOrEmpty(tpl.TemplateNo) && tpl.TemplateNo.StartsWith(baseCode))
+            {
+                // Ví dụ: FM-OPS-01-03 -> lấy 03
+                var parts = tpl.TemplateNo.Split('-');
+                if (parts.Length >= 4 && int.TryParse(parts[^1], out int num) && num > maxNumber)
+                {
+                    maxNumber = num;
+                }
+            }
+        }
+
+        // Sinh mã mới: FM-OPS-01-01, FM-OPS-01-02...
+        return $"{baseCode}-{(maxNumber + 1):D2}";
     }
 
     public async Task<TemplateDto> UpdateAsync(int id, TemplateUpdateDto dto)

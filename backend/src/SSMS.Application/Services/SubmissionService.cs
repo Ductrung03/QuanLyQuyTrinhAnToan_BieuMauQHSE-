@@ -72,8 +72,12 @@ public class SubmissionService : ISubmissionService
                 throw new KeyNotFoundException("Không tìm thấy biểu mẫu");
         }
 
+        // Generate SubmissionCode
+        var submissionCode = await GenerateSubmissionCodeAsync();
+
         var submission = new OpsSubmission
         {
+            SubmissionCode = submissionCode,
             ProcedureId = dto.ProcedureId,
             TemplateId = dto.TemplateId,
             Title = dto.Title,
@@ -106,9 +110,14 @@ public class SubmissionService : ISubmissionService
         {
             foreach (var recipientId in dto.RecipientUserIds)
             {
+                // Get user to retrieve UnitId
+                var recipientUser = await _unitOfWork.Users.GetByIdAsync(recipientId);
+                var unitId = recipientUser?.UnitId ?? 1; // Default to unit 1 if no unit
+                
                 submission.Recipients.Add(new OpsSubmissionRecipient
                 {
                     RecipientUserId = recipientId,
+                    UnitId = unitId,
                     RecipientType = "CC"
                 });
             }
@@ -163,6 +172,22 @@ public class SubmissionService : ISubmissionService
         return minutesSinceSubmission <= RECALL_TIME_LIMIT_MINUTES;
     }
 
+    private async Task<string> GenerateSubmissionCodeAsync()
+    {
+        // Format: SUB-YYYYMMDD-NNN
+        var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
+        var dateStr = today.ToString("yyyyMMdd");
+        
+        // Count submissions for today using date range (SQL Server compatible)
+        var todaySubmissions = await _unitOfWork.Submissions.FindAsync(
+            s => s.SubmittedAt >= today && s.SubmittedAt < tomorrow
+        );
+        var count = todaySubmissions.Count() + 1;
+        
+        return $"SUB-{dateStr}-{count:D3}";
+    }
+
     private async Task<OpsSubmissionFile> UploadFileAsync(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -205,12 +230,18 @@ public class SubmissionService : ISubmissionService
         var recipientDtos = new List<SubmissionRecipientDto>();
         foreach (var r in recipients)
         {
-            var user = await _unitOfWork.Users.GetByIdAsync(r.RecipientUserId);
+            var user = r.RecipientUserId.HasValue
+                ? await _unitOfWork.Users.GetByIdAsync(r.RecipientUserId.Value)
+                : null;
+            var unit = await _unitOfWork.Units.GetByIdAsync(r.UnitId);
             recipientDtos.Add(new SubmissionRecipientDto
             {
-                Id = r.RecipientId,
+                SubmissionId = r.SubmissionId,
+                UnitId = r.UnitId,
+                UnitName = unit?.Name ?? "",
                 RecipientUserId = r.RecipientUserId,
                 RecipientUserName = user?.FullName ?? "",
+                RecipientRole = r.RecipientRole,
                 RecipientType = r.RecipientType
             });
         }

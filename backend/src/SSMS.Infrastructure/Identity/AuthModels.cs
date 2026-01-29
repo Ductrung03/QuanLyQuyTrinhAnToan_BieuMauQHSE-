@@ -1,7 +1,16 @@
 namespace SSMS.Infrastructure.Identity;
 
 /// <summary>
-/// DTO cho Mock Login Request
+/// DTO cho Login Request (proper authentication)
+/// </summary>
+public class LoginRequest
+{
+    public string LoginName { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// DTO cho Mock Login Request (deprecated - for development only)
 /// </summary>
 public class MockLoginRequest
 {

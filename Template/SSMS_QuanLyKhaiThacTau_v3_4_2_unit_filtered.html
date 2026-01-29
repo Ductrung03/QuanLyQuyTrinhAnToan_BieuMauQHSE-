@@ -4,20 +4,56 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SSMS – Quản lý Khai thác tàu (v3.4.2 • Lọc theo đơn vị)</title>
+  <!-- Lucide Icons CDN -->
+  <link rel="preconnect" href="https://unpkg.com">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
   <style>
     :root{
-      --bg:#f8fafc;--panel:#ffffff;--ink:#0f172a;--muted:#64748b;--primary:#0ea5e9;--border:#e2e8f0;--shadow:0 10px 25px rgba(2,6,23,.06);
-      --success:#10b981;--danger:#ef4444;--warn:#f59e0b;
+      /* Background & Surface */
+      --bg-primary:#f8fafc;--bg-secondary:#f1f5f9;--surface:#ffffff;
+      
+      /* Text Colors - Better Contrast */
+      --text-primary:#0f172a;--text-secondary:#334155;--text-tertiary:#64748b;
+      
+      /* DISTINCTIVE Maritime Primary (NOT generic Sky Blue) */
+      --primary:#0369a1;--primary-light:#0284c7;--primary-dark:#075985;--primary-lighter:#bae6fd;
+      
+      /* Semantic Colors */
+      --success:#059669;--danger:#dc2626;--warning:#d97706;--info:#2563eb;
+      
+      /* Borders */
+      --border-light:#e2e8f0;--border-medium:#cbd5e1;
+      
+      /* Shadows - Only for modals/dropdowns */
+      --shadow-modal:0 20px 40px rgba(15,23,42,0.12);--shadow-dropdown:0 10px 20px rgba(15,23,42,0.08);
+      
+      /* Typography */
+      --font-primary:'Inter','Be Vietnam Pro',-apple-system,BlinkMacSystemFont,sans-serif;
+      --text-xs:11px;--text-sm:12px;--text-base:13px;--text-md:14px;--text-lg:16px;--text-xl:18px;
+      --font-normal:400;--font-medium:500;--font-semibold:600;--font-bold:700;
+      --tracking-tight:-0.02em;--tracking-normal:0;--tracking-wide:0.05em;
+      
+      /* Legacy support */
+      --bg:var(--bg-primary);--panel:var(--surface);--ink:var(--text-primary);--muted:var(--text-secondary);--border:var(--border-light);--warn:var(--warning);
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto}
+    body{margin:0;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-primary)}
+    
+    /* Focus States for Accessibility */
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+      outline:2px solid var(--primary);outline-offset:2px;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-lighter);
+    }
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:20}
     .wrap{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
     h1{font-size:18px;margin:0}
     .sub{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 
     .layout{max-width:1280px;margin:16px auto;display:grid;grid-template-columns:260px 1fr;gap:16px;padding:0 16px}
-    aside{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:10px}
+    aside{background:var(--surface);border:1px solid var(--border-light);border-radius:14px;padding:10px}
     main{min-height:70vh}
 
     .nav h3{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:8px 8px}
@@ -25,7 +61,7 @@
     .nav a:hover{background:#f1f5f9}
     .nav a.active{background:#e0f2fe;color:#075985}
 
-    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .panel{background:var(--surface);border:1px solid var(--border-light);border-radius:14px}
     .panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
     .panel-body{padding:14px}
 
@@ -40,19 +76,22 @@
     .table th{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
     .table td:last-child{white-space:nowrap}
 
-    .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600}
+    .btn{appearance:none;border:1px solid var(--border-light);background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:var(--font-semibold);transition:all 0.15s ease;display:inline-flex;align-items:center;gap:6px}
+    .btn:hover{background:var(--bg-secondary);border-color:var(--border-medium);transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
     .btn.primary{background:var(--primary);color:#fff;border-color:transparent}
+    .btn.primary:hover{background:var(--primary-light)}
     .btn.success{background:var(--success);color:#fff;border-color:transparent}
     .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
-    .btn.warn{background:var(--warn);color:#fff;border-color:transparent}
-    .btn.ghost{background:#f1f5f9}
+    .btn.warn{background:var(--warning);color:#fff;border-color:transparent}
+    .btn.ghost{background:var(--bg-secondary)}
 
     .muted{color:var(--muted)}
     .toolbar{display:flex;gap:6px;flex-wrap:wrap}
     .toolbar.nowrap{flex-wrap:nowrap}
-    .chip{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;margin-right:4px}
+    .chip{display:inline-block;padding:2px 8px;border-radius:6px;border:1px solid var(--border-light);font-size:var(--text-xs);margin-right:4px}
 
-    dialog{border:none;border-radius:14px;box-shadow:var(--shadow);width:min(900px,96vw)}
+    dialog{border:none;border-radius:14px;box-shadow:var(--shadow-modal);width:min(900px,96vw)}
     dialog::backdrop{background:rgba(2,6,23,.35)}
     .modal-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
     .modal-body{padding:12px 14px}
@@ -61,7 +100,7 @@
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .field{display:grid;gap:6px}
     .field label{font-size:12px;color:var(--muted)}
-    .field input,.field select,.field textarea{padding:9px 10px;border:1px solid var(--border);border-radius:10px}
+    .field input,.field select,.field textarea{padding:9px 12px;border:1px solid var(--border-light);border-radius:8px;transition:border-color 0.15s ease,box-shadow 0.15s ease}
     .note{font-size:12px;color:var(--muted)}
     .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f1f5f9;border:1px solid var(--border);padding:0 6px;border-radius:6px}
   
@@ -70,7 +109,7 @@
     .tab-btn{appearance:none;border:none;background:transparent;padding:10px 12px;border-radius:10px 10px 0 0;
              font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
     .tab-btn:hover{background:#f8fafc;color:#0f172a}
-    .tab-btn.active{color:#075985;background:#e0f2fe;border-bottom-color:#0ea5e9}
+    .tab-btn.active{color:#075985;background:#e0f2fe;border-bottom-color:var(--primary)}
   </style>
 </head>
 <body>
@@ -90,7 +129,9 @@
 
   <header>
     <div class="wrap">
-      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#60a5fa)"></div>
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0369a1,#0284c7);display:flex;align-items:center;justify-content:center">
+        <i data-lucide="ship" style="color:#fff;width:20px;height:20px"></i>
+      </div>
       <div>
         <h1>SSMS – Modul Quản lý Khai thác tàu</h1>
         <div class="sub">
@@ -106,19 +147,19 @@
     <aside>
       <nav class="nav" id="leftNav">
         <h3>Chức năng</h3>
-        <a href="javascript:void(0)" data-view="dashboard" class="">📊 Dashboard</a>
-        <a href="javascript:void(0)" data-view="process" class="active">📚 Quy trình</a>
-        <a href="javascript:void(0)" data-view="templates" class="">🧾 Biểu mẫu</a>
-        <a href="javascript:void(0)" data-view="approvals" class="">✅ Phê duyệt</a>
-        <a href="javascript:void(0)" data-view="audit" class="">🕒 Nhật ký</a>
-        <a href="javascript:void(0)" data-view="settings" class="">⚙️ Cài đặt</a>
+        <a href="javascript:void(0)" data-view="dashboard" class=""><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="javascript:void(0)" data-view="process" class="active"><i data-lucide="book-open"></i> Quy trình</a>
+        <a href="javascript:void(0)" data-view="templates" class=""><i data-lucide="file-text"></i> Biểu mẫu</a>
+        <a href="javascript:void(0)" data-view="approvals" class=""><i data-lucide="check-circle"></i> Phê duyệt</a>
+        <a href="javascript:void(0)" data-view="audit" class=""><i data-lucide="clock"></i> Nhật ký</a>
+        <a href="javascript:void(0)" data-view="settings" class=""><i data-lucide="settings"></i> Cài đặt</a>
       </nav>
     </aside>
 
     <main>
       <!-- DASHBOARD -->
       <section id="view-dashboard" class="panel" hidden="">
-        <div class="panel-head"><h2>📊 Dashboard</h2></div>
+        <div class="panel-head"><h2><i data-lucide="layout-dashboard" style="width:20px;height:20px"></i> Dashboard</h2></div>
         <div class="panel-body grid cols-3">
           <div class="card"><h4>Tổng số Quy trình</h4><div id="kpiProc" style="font-size:28px;font-weight:800">5</div><div class="muted">đang quản lý</div></div>
           <div class="card"><h4>Tổng số Biểu mẫu</h4><div id="kpiTpl" style="font-size:28px;font-weight:800">8</div><div class="muted">form &amp; checklist</div></div>
@@ -132,11 +173,11 @@
 
       <!-- QUY TRÌNH -->
       <section id="view-process" class="panel">
-        <div class="panel-head"><h2>📚 Quy trình</h2>
+        <div class="panel-head"><h2><i data-lucide="book-open" style="width:20px;height:20px"></i> Quy trình</h2>
           <div class="toolbar">
             <input id="qProc" placeholder="Tìm mã quy trình / tên quy trình / mẫu" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;min-width:280px">
             <button class="btn" id="btnSearchProc">Tìm</button>
-            <button class="btn primary" id="btnNewProc">＋ New</button>
+            <button class="btn primary" id="btnNewProc"><i data-lucide="plus"></i> New</button>
           </div>
         </div>
         <div class="panel-body">
@@ -157,8 +198,8 @@
                   <div style="display:flex;align-items:center;justify-content:space-between">
                     <h4>Thông tin quy trình</h4>
                     <div class="toolbar">
-                      <button class="btn" id="btnDownloadDoc">⬇️ Tải tài liệu</button>
-                      <button class="btn primary" id="btnEditProc">✎ Edit</button>
+                      <button class="btn" id="btnDownloadDoc"><i data-lucide="download"></i> Tải tài liệu</button>
+                      <button class="btn primary" id="btnEditProc"><i data-lucide="edit-2"></i> Edit</button>
                     </div>
                   </div>
                   <div id="procInfo">Chưa chọn quy trình.</div>
@@ -168,7 +209,7 @@
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                   <h4 style="margin:0">Danh sách mẫu</h4>
                   <div class="toolbar">
-                    <button class="btn primary" id="btnAddTpl">＋ Thêm biểu mẫu</button>
+                    <button class="btn primary" id="btnAddTpl"><i data-lucide="plus"></i> Thêm biểu mẫu</button>
                   </div>
                 </div>
                 <table class="table" id="tblProcTpl"><thead><tr><th>Số</th><th>Số hiệu</th><th>Tên mẫu</th><th>Loại</th><th>File</th><th>Trạng thái</th><th></th></tr></thead><tbody></tbody></table>
@@ -183,12 +224,12 @@
 
       <!-- BIỂU MẪU (Nộp & duyệt) -->
       <section id="view-templates" class="panel" hidden="">
-        <div class="panel-head"><h2>🧾 Biểu mẫu – Nộp &amp; gửi duyệt</h2>
+        <div class="panel-head"><h2><i data-lucide="file-text" style="width:20px;height:20px"></i> Biểu mẫu – Nộp &amp; gửi duyệt</h2>
           <div class="toolbar">
             <select id="fltProc"><option value="">-- Quy trình --</option></select>
             <select id="fltState"><option value="">-- Trạng thái --</option><option>Draft</option><option>Submitted</option><option>Under Review</option><option>Approved</option><option>Rejected</option></select>
             <button class="btn" id="btnFilter">Lọc</button>
-            <button class="btn primary" id="btnNewSubmit">＋ Nộp biểu mẫu</button>
+            <button class="btn primary" id="btnNewSubmit"><i data-lucide="plus"></i> Nộp biểu mẫu</button>
           </div>
         </div>
         <div class="panel-body">
@@ -204,7 +245,7 @@
 
       <!-- PHÊ DUYỆT -->
       <section id="view-approvals" class="panel" hidden="">
-        <div class="panel-head"><h2>✅ Phê duyệt</h2></div>
+        <div class="panel-head"><h2><i data-lucide="check-circle" style="width:20px;height:20px"></i> Phê duyệt</h2></div>
         <div class="panel-body">
           <table class="table" id="tblAppr">
             <thead><tr>
@@ -218,7 +259,7 @@
 
       <!-- NHẬT KÝ -->
       <section id="view-audit" class="panel" hidden="">
-        <div class="panel-head"><h2>🕒 Nhật ký</h2></div>
+        <div class="panel-head"><h2><i data-lucide="clock" style="width:20px;height:20px"></i> Nhật ký</h2></div>
         <div class="panel-body">
           <table class="table" id="tblLog"><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody></tbody></table>
         </div>
@@ -226,17 +267,17 @@
 
       <!-- CÀI ĐẶT -->
       <section id="view-settings" class="panel" hidden="">
-        <div class="panel-head"><h2>⚙️ Cài đặt &amp; Sao lưu</h2></div>
+        <div class="panel-head"><h2><i data-lucide="settings" style="width:20px;height:20px"></i> Cài đặt &amp; Sao lưu</h2></div>
         <div class="panel-body grid">
           <div class="card">
             <h4>Lưu cục bộ (localStorage)</h4>
             <p class="note">Mọi thay đổi sẽ tự động lưu sau mỗi thao tác.</p>
             <div class="toolbar">
-              <button class="btn" id="btnSaveNow">💾 Lưu ngay</button>
-              <button class="btn" id="btnExport">⬇️ Xuất JSON</button>
-              <button class="btn" id="btnImport">⬆️ Nhập JSON</button>
+              <button class="btn" id="btnSaveNow"><i data-lucide="save"></i> Lưu ngay</button>
+              <button class="btn" id="btnExport"><i data-lucide="download"></i> Xuất JSON</button>
+              <button class="btn" id="btnImport"><i data-lucide="upload"></i> Nhập JSON</button>
               <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
-              <button class="btn danger" id="btnReset">🗑️ Xóa dữ liệu &amp; nạp Demo</button>
+              <button class="btn danger" id="btnReset"><i data-lucide="trash-2"></i> Xóa dữ liệu &amp; nạp Demo</button>
             </div>
             <p class="note" id="storeStat">Trạng thái: ...</p>
             <ul class="note">
@@ -253,7 +294,7 @@
   <!-- Modals -->
   <!-- (giữ nguyên các dialog, chỉ sửa JS) -->
   <dialog id="modalProc">
-    <div class="modal-head"><strong id="modalProcTitle">✎ Sửa quy trình</strong><button class="btn" onclick="closeModal('modalProc')">Đóng</button></div>
+    <div class="modal-head"><strong id="modalProcTitle"><i data-lucide="edit-2"></i> Sửa quy trình</strong><button class="btn" onclick="closeModal('modalProc')">Đóng</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="field"><label>Ký hiệu</label><input id="fCode" placeholder="OPS-01" disabled=""></div>
@@ -277,7 +318,7 @@
   </dialog>
 
   <dialog id="modalTpl">
-    <div class="modal-head"><strong id="modalTplTitle">＋ Biểu mẫu</strong><button class="btn" onclick="closeModal('modalTpl')">Đóng</button></div>
+    <div class="modal-head"><strong id="modalTplTitle"><i data-lucide="plus"></i> Biểu mẫu</strong><button class="btn" onclick="closeModal('modalTpl')">Đóng</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="field"><label>Số hiệu (No.)</label><input id="tNo" placeholder="FM-OPS-01"></div>
@@ -298,7 +339,7 @@
   </dialog>
 
   <dialog id="modalSubmit">
-    <div class="modal-head"><strong>＋ Nộp biểu mẫu</strong><button class="btn" onclick="closeModal('modalSubmit')">Đóng</button></div>
+    <div class="modal-head"><strong><i data-lucide="plus"></i> Nộp biểu mẫu</strong><button class="btn" onclick="closeModal('modalSubmit')">Đóng</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="field"><label>Quy trình</label><select id="sProc"></select></div>
@@ -642,7 +683,7 @@
         docs.map((d,i)=>`<tr><td>${i+1}</td><td>${d.ver||''}</td><td>${d.file||''}</td><td>${d.date||''}</td>
           <td><div class="toolbar nowrap">
             <button class="btn ghost" data-open-doc="${i}">Mở</button>
-            <button class="btn" data-dl-doc="${i}">⬇️ Tải</button>
+            <button class="btn" data-dl-doc="${i}"><i data-lucide="download"></i> Tải</button>
             <button class="btn danger" data-del-doc="${i}">Xóa</button>
           </div></td></tr>`).join('')
       }</tbody></table>`
@@ -662,10 +703,10 @@
             <div style="flex:1">${filesHtml}</div>
             <div>
               <input id="inputAddProcDocs" type="file" multiple accept=".pdf,.doc,.docx" style="display:none;">
-              <button class="btn" id="btnAddProcDocs">＋ Thêm tài liệu</button>
+              <button class="btn" id="btnAddProcDocs"><i data-lucide="plus"></i> Thêm tài liệu</button>
             </div>
           </div>
-          <div class="note">Dùng <b>＋ Thêm tài liệu</b> để đính kèm nhiều file.</div>
+          <div class="note">Dùng <b>Thêm tài liệu</b> để đính kèm nhiều file.</div>
         </div>
         <div class="field" style="grid-column:1/-1"><label>Mô tả</label><div>${selectedProc.desc||'-'}</div></div>
       </div>
@@ -713,7 +754,7 @@
         tr.innerHTML=`<td>${i+1}</td><td>${t.no||'-'}</td><td>${t.name}</td><td>${t.type}</td><td>${t.file||'-'}</td><td>${t.state}</td>
           <td><div class="toolbar nowrap">
             <button class="btn ghost" data-open="${t.id}">Mở</button>
-            <button class="btn" data-dl="${t.id}">⬇️ Tải</button>
+            <button class="btn" data-dl="${t.id}"><i data-lucide="download"></i> Tải</button>
             <button class="btn" data-edit="${t.id}">Sửa</button>
             <button class="btn danger" data-del="${t.id}">Xóa</button>
           </div></td>`;
@@ -746,7 +787,7 @@
   let editMode = 'new';
 
   function openProcModal(mode){
-    editMode = mode; qs('#modalProcTitle').textContent = (mode==='new'?'＋ Quy trình':'✎ Sửa quy trình');
+    editMode = mode; qs('#modalProcTitle').innerHTML = (mode==='new'?'<i data-lucide="plus"></i> Quy trình':'<i data-lucide="edit-2"></i> Sửa quy trình');
     const fCode=qs('#fCode'), fName=qs('#fName'), fVersion=qs('#fVersion'), fState=qs('#fState'),
       fAuthor=qs('#fAuthor'), fApprover=qs('#fApprover'), fCreated=qs('#fCreated'), fReleased=qs('#fReleased'),
       fDesc=qs('#fDesc'), fDocs=qs('#fDocs');
@@ -810,7 +851,7 @@
   let tplEdit = { mode:'new', procCode:null, tpl:null };
 
   function openTplModal(mode, procCode, tpl=null){
-    tplEdit = {mode, procCode, tpl}; qs('#modalTplTitle').textContent = (mode==='new'?'＋ Biểu mẫu':'✎ Sửa biểu mẫu');
+    tplEdit = {mode, procCode, tpl}; qs('#modalTplTitle').innerHTML = (mode==='new'?'<i data-lucide="plus"></i> Biểu mẫu':'<i data-lucide="edit-2"></i> Sửa biểu mẫu');
     const tNo=qs('#tNo'), tName=qs('#tName'), tType=qs('#tType'), tState=qs('#tState'), tFile=qs('#tFile');
     if(mode==='edit' && tpl){
       tNo.value = tpl.no||''; tName.value = tpl.name||''; tType.value = tpl.type||'Form'; tState.value = tpl.state||'Draft'; tFile.value = '';
@@ -1034,7 +1075,7 @@
         <div class="field"><label>Ngày gửi</label><div>${s.date||'-'}</div></div>
         <div class="field"><label>Hạn xử lý</label><div>${s.due||'-'}</div></div>
         <div class="field" style="grid-column:1/-1"><label>Files</label>
-          <div>${s.files.map((f,i)=>`<div style='display:flex;align-items:center;gap:8px;margin:4px 0'><span>${f}</span><button class='btn ghost' data-openf='${i}'>Mở</button><button class='btn' data-dlf='${i}'>⬇️ Tải</button></div>`).join('')}</div>
+          <div>${s.files.map((f,i)=>`<div style='display:flex;align-items:center;gap:8px;margin:4px 0'><span>${f}</span><button class='btn ghost' data-openf='${i}'>Mở</button><button class='btn' data-dlf='${i}'><i data-lucide="download"></i> Tải</button></div>`).join('')}</div>
         </div>
         <div class="field" style="grid-column:1/-1"><label>Ghi chú của người gửi</label><div>${s.note||'-'}</div></div>
       </div>`;
@@ -1166,6 +1207,11 @@
         rerenderAll();
         const last = localStorage.getItem('SSMS_OPS_LASTVIEW') || 'dashboard';
         go(last);
+        
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+          setTimeout(() => lucide.createIcons(), 100);
+        }
       } catch(err) {
         console.error(err);
         toast('Lỗi khởi tạo: '+err.message);

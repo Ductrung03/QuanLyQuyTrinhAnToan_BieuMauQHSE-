@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.API.Helpers;
 using SSMS.Application.DTOs;
 using SSMS.Application.Services;
 
@@ -14,13 +15,16 @@ namespace SSMS.API.Controllers;
 public class ProceduresController : ControllerBase
 {
     private readonly IProcedureService _procedureService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<ProceduresController> _logger;
 
     public ProceduresController(
         IProcedureService procedureService,
+        IAuditLogService auditLogService,
         ILogger<ProceduresController> logger)
     {
         _procedureService = procedureService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -99,6 +103,15 @@ public class ProceduresController : ControllerBase
             _logger.LogInformation("Created procedure {Code} by user {User}", 
                 procedure.Code, User.Identity?.Name);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Create",
+                targetType: "Procedure",
+                targetId: procedure.Id,
+                targetName: procedure.Code,
+                newData: dto);
+
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = procedure.Id },
@@ -142,6 +155,15 @@ public class ProceduresController : ControllerBase
             _logger.LogInformation("Updated procedure {Id} by user {User}", 
                 id, User.Identity?.Name);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Update",
+                targetType: "Procedure",
+                targetId: id,
+                targetName: procedure.Code,
+                newData: dto);
+
             return Ok(new
             {
                 Success = true,
@@ -182,6 +204,13 @@ public class ProceduresController : ControllerBase
             _logger.LogInformation("Deleted procedure {Id} by user {User}", 
                 id, User.Identity?.Name);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Delete",
+                targetType: "Procedure",
+                targetId: id);
+
             return Ok(new
             {
                 Success = true,
@@ -210,13 +239,21 @@ public class ProceduresController : ControllerBase
     /// <summary>
     /// Upload tài liệu đính kèm
     /// </summary>
+    public class DocumentUploadModel
+    {
+        public IFormFile File { get; set; }
+        public string? DocVersion { get; set; }
+    }
+
     [HttpPost("{id}/documents")]
     [Authorize(Policy = "ManagerOrAdmin")]
     public async Task<IActionResult> UploadDocument(
         int id,
-        [FromForm] IFormFile file,
-        [FromForm] string? docVersion)
+        [FromForm] DocumentUploadModel model)
     {
+        var file = model.File;
+        var docVersion = model.DocVersion;
+
         try
         {
             if (file == null || file.Length == 0)
@@ -232,6 +269,16 @@ public class ProceduresController : ControllerBase
             
             _logger.LogInformation("Uploaded document for procedure {Id} by user {User}", 
                 id, User.Identity?.Name);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "UploadDocument",
+                targetType: "ProcedureDocument",
+                targetId: document.Id,
+                targetName: document.FileName,
+                detail: docVersion,
+                newData: new { ProcedureId = id });
 
             return Ok(new
             {
@@ -280,6 +327,13 @@ public class ProceduresController : ControllerBase
             
             _logger.LogInformation("Deleted document {Id} by user {User}", 
                 documentId, User.Identity?.Name);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "DeleteDocument",
+                targetType: "ProcedureDocument",
+                targetId: documentId);
 
             return Ok(new
             {

@@ -139,20 +139,30 @@ public class ProcedureService : IProcedureService
 
     public async Task<ProcedureDto> CreateAsync(ProcedureCreateDto dto)
     {
-        // Kiểm tra Code đã tồn tại chưa
-        var existing = await _unitOfWork.Procedures
-            .FirstOrDefaultAsync(p => p.Code == dto.Code);
-        
-        if (existing != null)
+        // Tự động sinh mã quy trình nếu không có
+        string code;
+        if (string.IsNullOrWhiteSpace(dto.Code))
         {
-            throw new InvalidOperationException($"Mã quy trình '{dto.Code}' đã tồn tại");
+            code = await GenerateProcedureCodeAsync();
+        }
+        else
+        {
+            code = dto.Code;
+            // Kiểm tra Code đã tồn tại chưa
+            var existing = await _unitOfWork.Procedures
+                .FirstOrDefaultAsync(p => p.Code == code);
+
+            if (existing != null)
+            {
+                throw new InvalidOperationException($"Mã quy trình '{code}' đã tồn tại");
+            }
         }
 
         var procedure = new OpsProcedure
         {
-            Code = dto.Code,
+            Code = code,
             Name = dto.Name,
-            Version = dto.Version,
+            Version = dto.Version ?? "1.0",
             Description = dto.Description,
             OwnerUserId = dto.OwnerUserId,
             AuthorUserId = dto.AuthorUserId,
@@ -164,6 +174,31 @@ public class ProcedureService : IProcedureService
         await _unitOfWork.SaveChangesAsync();
 
         return (await GetByIdAsync(procedure.Id))!;
+    }
+
+    /// <summary>
+    /// Tự động sinh mã quy trình theo format OPS-XX
+    /// </summary>
+    private async Task<string> GenerateProcedureCodeAsync()
+    {
+        var allProcedures = await _unitOfWork.Procedures.GetAllAsync();
+
+        // Tìm số lớn nhất hiện có
+        int maxNumber = 0;
+        foreach (var proc in allProcedures)
+        {
+            if (proc.Code.StartsWith("OPS-") && proc.Code.Length > 4)
+            {
+                var numPart = proc.Code.Substring(4);
+                if (int.TryParse(numPart, out int num) && num > maxNumber)
+                {
+                    maxNumber = num;
+                }
+            }
+        }
+
+        // Sinh mã mới
+        return $"OPS-{(maxNumber + 1):D2}";
     }
 
     public async Task<ProcedureDto> UpdateAsync(int id, ProcedureUpdateDto dto)

@@ -11,6 +11,7 @@ public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _context;
     private IDbContextTransaction? _transaction;
+    private readonly Dictionary<Type, object> _repositories = new();
 
     public IRepository<AppUser> Users { get; }
     public IRepository<Unit> Units { get; }
@@ -36,9 +37,24 @@ public class UnitOfWork : IUnitOfWork
         Approvals = new Repository<OpsApproval>(context);
     }
 
-    public async Task<int> SaveChangesAsync()
+    /// <summary>
+    /// Get or create repository for any entity type
+    /// </summary>
+    public IRepository<TEntity> GetRepository<TEntity>() where TEntity : class
     {
-        return await _context.SaveChangesAsync();
+        var type = typeof(TEntity);
+
+        if (!_repositories.ContainsKey(type))
+        {
+            _repositories[type] = new Repository<TEntity>(_context);
+        }
+
+        return (IRepository<TEntity>)_repositories[type];
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task BeginTransactionAsync()

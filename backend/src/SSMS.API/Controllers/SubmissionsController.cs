@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.API.Helpers;
 using SSMS.Application.DTOs;
 using SSMS.Application.Services;
 
@@ -15,13 +16,16 @@ namespace SSMS.API.Controllers;
 public class SubmissionsController : ControllerBase
 {
     private readonly ISubmissionService _submissionService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<SubmissionsController> _logger;
 
     public SubmissionsController(
         ISubmissionService submissionService,
+        IAuditLogService auditLogService,
         ILogger<SubmissionsController> logger)
     {
         _submissionService = submissionService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -102,6 +106,15 @@ public class SubmissionsController : ControllerBase
             var userId = GetCurrentUserId();
             var submission = await _submissionService.CreateAsync(dto, userId, files);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Submit",
+                targetType: "Submission",
+                targetId: submission.Id,
+                targetName: submission.Title,
+                newData: dto);
+
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = submission.Id },
@@ -141,6 +154,14 @@ public class SubmissionsController : ControllerBase
         {
             var userId = GetCurrentUserId();
             await _submissionService.RecallAsync(id, userId, dto.Reason);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Recall",
+                targetType: "Submission",
+                targetId: id,
+                detail: dto.Reason);
 
             return Ok(new
             {

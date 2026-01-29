@@ -1,0 +1,10 @@
+export { default as LoginPage } from './LoginPage';
+export { default as DashboardPage } from './DashboardPage';
+export { default as ProceduresPage } from './ProceduresPage';
+export { default as TemplatesPage } from './TemplatesPage';
+export { default as SubmissionsPage } from './SubmissionsPage';
+export { default as ApprovalsPage } from './ApprovalsPage';
+export { default as AuditPage } from './AuditPage';
+export { default as SettingsPage } from './SettingsPage';
+export { default as RolesPage } from './RolesPage';
+export { default as UsersPage } from './UsersPage';

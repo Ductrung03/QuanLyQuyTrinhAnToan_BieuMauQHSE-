@@ -1,7 +1,8 @@
-# Speckit & Claude & Gemini
+# Speckit & Claude & Gemini & AI Tools
 .claude
 .specify
 .gemini
+.sisyphus
 .vscode
 specs/
 Database
@@ -62,6 +63,9 @@ out/
 # Testing
 coverage/
 *.test.js.snap
+TestResults/
+test-results/
+playwright-report/
 
 # IDE
 .idea/
@@ -80,6 +84,7 @@ Thumbs.db
 uploads/
 files/
 temp/
+Temp/
 
 # OS
 .DS_Store

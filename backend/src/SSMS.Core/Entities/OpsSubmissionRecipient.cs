@@ -1,34 +1,44 @@
 namespace SSMS.Core.Entities;
 
 /// <summary>
-/// Người nhận (CC) của submission
+/// Người nhận (CC) của submission - Composite key: (SubmissionId, UnitId)
 /// </summary>
 public class OpsSubmissionRecipient
 {
     /// <summary>
-    /// ID recipient (Primary Key)
-    /// </summary>
-    public int RecipientId { get; set; }
-
-    /// <summary>
-    /// ID submission
+    /// ID submission (Part of composite key)
     /// </summary>
     public int SubmissionId { get; set; }
 
     /// <summary>
-    /// Submission
+    /// Submission navigation
     /// </summary>
     public OpsSubmission Submission { get; set; } = null!;
 
     /// <summary>
-    /// ID người nhận
+    /// ID Unit (Part of composite key)
     /// </summary>
-    public int RecipientUserId { get; set; }
+    public int UnitId { get; set; }
 
     /// <summary>
-    /// Người nhận
+    /// Unit navigation
     /// </summary>
-    public AppUser RecipientUser { get; set; } = null!;
+    public Unit Unit { get; set; } = null!;
+
+    /// <summary>
+    /// ID người nhận (nullable)
+    /// </summary>
+    public int? RecipientUserId { get; set; }
+
+    /// <summary>
+    /// Người nhận navigation
+    /// </summary>
+    public AppUser? RecipientUser { get; set; }
+
+    /// <summary>
+    /// Role của người nhận
+    /// </summary>
+    public string? RecipientRole { get; set; }
 
     /// <summary>
     /// Loại (To, CC)

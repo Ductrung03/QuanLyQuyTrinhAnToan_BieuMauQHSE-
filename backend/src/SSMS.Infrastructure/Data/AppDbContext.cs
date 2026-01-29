@@ -24,6 +24,11 @@ public class AppDbContext : DbContext
     public DbSet<OpsApproval> OpsApprovals { get; set; }
     public DbSet<OpsAuditLog> OpsAuditLogs { get; set; }
 
+    // Permission System DbSets
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<UserPermission> UserPermissions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -78,10 +83,19 @@ public class AppDbContext : DbContext
             // LastLoginAt - column mới (nullable)
             entity.Property(e => e.LastLoginAt);
 
+            // RoleId - Foreign Key to Role table
+            entity.Property(e => e.RoleId);
+
             // Relationship với Unit
             entity.HasOne(e => e.Unit)
                 .WithMany(u => u.Users)
                 .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Relationship với Role
+            entity.HasOne(e => e.RoleEntity)
+                .WithMany(r => r.Users)
+                .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // BaseEntity fields
@@ -435,15 +449,18 @@ public class AppDbContext : DbContext
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
-        // Cấu hình cho OpsSubmissionRecipient
+        // Cấu hình cho OpsSubmissionRecipient - Composite key (SubmissionId, UnitId)
         modelBuilder.Entity<OpsSubmissionRecipient>(entity =>
         {
             entity.ToTable("OpsSubmissionRecipient");
-            
-            entity.HasKey(e => e.RecipientId);
+
+            // Composite primary key
+            entity.HasKey(e => new { e.SubmissionId, e.UnitId });
+
+            entity.Property(e => e.RecipientRole)
+                .HasMaxLength(100);
 
             entity.Property(e => e.RecipientType)
-                .IsRequired()
                 .HasMaxLength(10)
                 .HasDefaultValue("CC");
 
@@ -459,12 +476,17 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.SubmissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(e => e.Unit)
+                .WithMany()
+                .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(e => e.RecipientUser)
                 .WithMany()
                 .HasForeignKey(e => e.RecipientUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // BaseEntity fields
+            // Audit fields
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime2(0)")
                 .HasDefaultValueSql("SYSUTCDATETIME()");
@@ -473,10 +495,6 @@ public class AppDbContext : DbContext
                 .HasDefaultValue(false);
 
             entity.HasQueryFilter(e => !e.IsDeleted);
-
-            // Index
-            entity.HasIndex(e => e.SubmissionId);
-            entity.HasIndex(e => e.RecipientUserId);
         });
 
         // Cấu hình cho OpsApproval
@@ -587,8 +605,123 @@ public class AppDbContext : DbContext
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
+        // ===================================================================
+        // PERMISSION SYSTEM CONFIGURATION
+        // ===================================================================
+
+        // Role Configuration
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Role");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("RoleId");
+
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.IsSystemRole).HasDefaultValue(false);
+
+            // BaseEntity fields
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2(0)");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            // Soft delete filter
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // Permission Configuration
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.ToTable("Permission");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("PermissionId");
+
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            entity.Property(e => e.Module).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            // BaseEntity fields
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2(0)");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            // Soft delete filter
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            // Index for module filtering
+            entity.HasIndex(e => e.Module);
+        });
+
+        // RolePermission Configuration (Join Table)
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermission");
+            entity.HasKey(e => new { e.RoleId, e.PermissionId });
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
+            // Relationships
+            entity.HasOne(e => e.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(e => e.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Permission)
+                .WithMany(p => p.RolePermissions)
+                .HasForeignKey(e => e.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // UserPermission Configuration (Override Table)
+        modelBuilder.Entity<UserPermission>(entity =>
+        {
+            entity.ToTable("UserPermission");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("UserPermissionId");
+
+            entity.Property(e => e.IsGranted).IsRequired();
+
+            // Relationships
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.UserPermissions)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Permission)
+                .WithMany(p => p.UserPermissions)
+                .HasForeignKey(e => e.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // BaseEntity fields
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2(0)")
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2(0)");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            // Soft delete filter
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            // Unique constraint: One user can have one override per permission
+            entity.HasIndex(e => new { e.UserId, e.PermissionId }).IsUnique();
+        });
+
         // Seed initial data - DISABLED vì database đã có sẵn
-        // DbSeeder.SeedData(modelBuilder);
+        DbSeeder.SeedData(modelBuilder);
     }
 
     /// <summary>

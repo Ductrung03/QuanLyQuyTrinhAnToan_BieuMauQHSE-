@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.API.Helpers;
 using SSMS.Application.DTOs;
 using SSMS.Application.Services;
 
@@ -14,13 +15,16 @@ namespace SSMS.API.Controllers;
 public class TemplatesController : ControllerBase
 {
     private readonly ITemplateService _templateService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<TemplatesController> _logger;
 
     public TemplatesController(
         ITemplateService templateService,
+        IAuditLogService auditLogService,
         ILogger<TemplatesController> logger)
     {
         _templateService = templateService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -127,6 +131,15 @@ public class TemplatesController : ControllerBase
             _logger.LogInformation("Created template {Name} by user {User}", 
                 template.Name, User.Identity?.Name);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Create",
+                targetType: "Template",
+                targetId: template.Id,
+                targetName: template.Name,
+                newData: dto);
+
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = template.Id },
@@ -178,6 +191,15 @@ public class TemplatesController : ControllerBase
             _logger.LogInformation("Updated template {Id} by user {User}", 
                 id, User.Identity?.Name);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Update",
+                targetType: "Template",
+                targetId: id,
+                targetName: template.Name,
+                newData: dto);
+
             return Ok(new
             {
                 Success = true,
@@ -217,6 +239,13 @@ public class TemplatesController : ControllerBase
             
             _logger.LogInformation("Deleted template {Id} by user {User}", 
                 id, User.Identity?.Name);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Delete",
+                targetType: "Template",
+                targetId: id);
 
             return Ok(new
             {
@@ -265,6 +294,15 @@ public class TemplatesController : ControllerBase
             
             _logger.LogInformation("Uploaded file for template {Id} by user {User}", 
                 id, User.Identity?.Name);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "UploadFile",
+                targetType: "Template",
+                targetId: id,
+                targetName: template.Name,
+                detail: template.FileName);
 
             return Ok(new
             {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.Application.Common;
 using SSMS.Application.Services;
 using System.Security.Claims;
 
@@ -29,6 +30,8 @@ public class DashboardController : ControllerBase
     /// </summary>
     [HttpGet("stats")]
     [AllowAnonymous] // Allow anonymous for development - remove in production
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetStats()
     {
         try
@@ -42,20 +45,14 @@ public class DashboardController : ControllerBase
             }
 
             var stats = await _dashboardService.GetStatsAsync(currentUserId);
-            return Ok(new
-            {
-                Success = true,
-                Data = stats
-            });
+            var response = ApiResponse<object>.SuccessResponse(stats, "Lấy thống kê thành công");
+            return Ok(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting dashboard stats");
-            return StatusCode(500, new
-            {
-                Success = false,
-                Message = "Lỗi khi lấy thống kê dashboard"
-            });
+            var errorResponse = ApiResponse<object>.ErrorResponse("Lỗi khi lấy thống kê dashboard", ex.Message);
+            return StatusCode(500, errorResponse);
         }
     }
 
@@ -63,25 +60,21 @@ public class DashboardController : ControllerBase
     /// Lấy danh sách hoạt động gần đây
     /// </summary>
     [HttpGet("recent-activities")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetRecentActivities([FromQuery] int count = 10)
     {
         try
         {
             var activities = await _dashboardService.GetRecentActivitiesAsync(count);
-            return Ok(new
-            {
-                Success = true,
-                Data = activities
-            });
+            var response = ApiResponse<object>.SuccessResponse(activities, "Lấy hoạt động gần đây thành công");
+            return Ok(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting recent activities");
-            return StatusCode(500, new
-            {
-                Success = false,
-                Message = "Lỗi khi lấy hoạt động gần đây"
-            });
+            var errorResponse = ApiResponse<object>.ErrorResponse("Lỗi khi lấy hoạt động gần đây", ex.Message);
+            return StatusCode(500, errorResponse);
         }
     }
 }

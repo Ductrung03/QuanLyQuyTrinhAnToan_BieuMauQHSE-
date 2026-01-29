@@ -6,6 +6,11 @@ namespace SSMS.Core.Entities;
 public class OpsSubmission : BaseEntity
 {
     /// <summary>
+    /// Mã biểu mẫu (unique, format: SUB-YYYYMMDD-NNN)
+    /// </summary>
+    public string SubmissionCode { get; set; } = string.Empty;
+
+    /// <summary>
     /// ID quy trình
     /// </summary>
     public int ProcedureId { get; set; }

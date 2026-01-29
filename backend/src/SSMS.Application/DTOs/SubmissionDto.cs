@@ -56,9 +56,12 @@ public class SubmissionFileDto
 /// </summary>
 public class SubmissionRecipientDto
 {
-    public int Id { get; set; }
-    public int RecipientUserId { get; set; }
+    public int SubmissionId { get; set; }
+    public int UnitId { get; set; }
+    public string UnitName { get; set; } = string.Empty;
+    public int? RecipientUserId { get; set; }
     public string RecipientUserName { get; set; } = string.Empty;
+    public string? RecipientRole { get; set; }
     public string RecipientType { get; set; } = string.Empty;
 }
 

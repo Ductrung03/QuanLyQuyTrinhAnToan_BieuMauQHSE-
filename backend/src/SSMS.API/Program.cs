@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +22,12 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddControllers();
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<SSMS.Application.Validators.ProcedureCreateDtoValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure Database
@@ -97,7 +105,17 @@ builder.Services.AddCors(options =>
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "SSMS-Default-Secret-Key-For-Development-Only-Change-In-Production";
+var secretKey = jwtSettings["SecretKey"];
+
+// SECURITY: Fail fast if JWT secret is not configured in production
+if (string.IsNullOrEmpty(secretKey))
+{
+    if (!builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException("CRITICAL: JwtSettings:SecretKey must be configured in production environment");
+    }
+    secretKey = "SSMS-Dev-Secret-Key-32Characters!"; // 32+ chars for HS256 (development only)
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -106,7 +124,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Set to true in production
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -137,6 +155,22 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new SSMS.Infrastructure.Identity.RoleRequirement("Manager", "Admin")));
 });
 
+// Configure Rate Limiting (Security: DoS/Brute-force protection)
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,  // 100 requests
+                QueueLimit = 0,     // No queueing
+                Window = TimeSpan.FromMinutes(1)  // Per minute
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // Register Authorization Handlers
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, 
     SSMS.Infrastructure.Identity.UnitAuthorizationHandler>();
@@ -145,13 +179,21 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationH
 
 // Register Application Services
 builder.Services.AddScoped<SSMS.Core.Interfaces.IUnitOfWork, SSMS.Infrastructure.Data.Repositories.UnitOfWork>();
-builder.Services.AddScoped<SSMS.Infrastructure.Identity.MockAuthService>();
+builder.Services.AddScoped<SSMS.Infrastructure.Identity.AuthService>();
+
+// Core Services
+builder.Services.AddScoped<SSMS.Application.Services.IUserService, SSMS.Application.Services.UserService>();
+builder.Services.AddScoped<SSMS.Application.Services.IUnitService, SSMS.Application.Services.UnitService>();
 builder.Services.AddScoped<SSMS.Application.Services.IProcedureService, SSMS.Application.Services.ProcedureService>();
 builder.Services.AddScoped<SSMS.Application.Services.ITemplateService, SSMS.Application.Services.TemplateService>();
 builder.Services.AddScoped<SSMS.Application.Services.ISubmissionService, SSMS.Application.Services.SubmissionService>();
 builder.Services.AddScoped<SSMS.Application.Services.IApprovalService, SSMS.Application.Services.ApprovalService>();
 builder.Services.AddScoped<SSMS.Application.Services.IAuditLogService, SSMS.Infrastructure.Services.AuditLogService>();
 builder.Services.AddScoped<SSMS.Application.Services.IDashboardService, SSMS.Infrastructure.Services.DashboardService>();
+
+// Permission System Services (Phase 2)
+builder.Services.AddScoped<SSMS.Application.Services.IRoleService, SSMS.Application.Services.RoleService>();
+builder.Services.AddScoped<SSMS.Application.Services.IPermissionService, SSMS.Application.Services.PermissionService>();
 
 // Add HttpContextAccessor for accessing HttpContext in services
 builder.Services.AddHttpContextAccessor();
@@ -202,6 +244,9 @@ app.UseHttpsRedirection();
 // Enable CORS
 app.UseCors("AllowFrontend");
 
+// Enable Rate Limiting (must be BEFORE authentication)
+app.UseRateLimiter();
+
 // Enable Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
@@ -221,6 +266,11 @@ app.MapGet("/health", () => Results.Ok(new
 .WithName("HealthCheck")
 .WithTags("System");
 
+using (var scope = app.Services.CreateScope())
+{
+    RuntimeSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
+}
+
 Log.Information("SSMS API is starting...");
 
 try
@@ -235,3 +285,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Make Program public for integration testing
+public partial class Program { }

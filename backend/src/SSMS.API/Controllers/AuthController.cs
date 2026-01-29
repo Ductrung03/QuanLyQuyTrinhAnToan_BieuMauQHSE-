@@ -1,35 +1,34 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SSMS.API.Helpers;
+using SSMS.Application.Services;
 using SSMS.Infrastructure.Identity;
 
 namespace SSMS.API.Controllers;
 
-/// <summary>
-/// Authentication Controller - Mock Login
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly MockAuthService _authService;
+    private readonly AuthService _authService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(MockAuthService authService, ILogger<AuthController> logger)
+    public AuthController(AuthService authService, IAuditLogService auditLogService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Lấy danh sách users để hiển thị dropdown
-    /// </summary>
     [HttpGet("users")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAvailableUsers()
+    public async Task<IActionResult> GetUsers()
     {
         try
         {
-            var users = await _authService.GetAvailableUsersAsync();
+            var users = await _authService.GetUsersAsync();
             return Ok(new
             {
                 Success = true,
@@ -38,7 +37,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available users");
+            _logger.LogError(ex, "Error getting users");
             return StatusCode(500, new
             {
                 Success = false,
@@ -47,12 +46,9 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Mock Login - chọn user từ dropdown
-    /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<IActionResult> Login([FromBody] MockLoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
         {
@@ -63,16 +59,39 @@ public class AuthController : ControllerBase
                 return BadRequest(new
                 {
                     Success = false,
-                    Message = "Người dùng không tồn tại hoặc đã bị vô hiệu hóa"
+                    Message = "Tên đăng nhập hoặc mật khẩu không đúng"
                 });
             }
 
             _logger.LogInformation("User {Username} logged in successfully", result.Username);
 
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Login",
+                targetType: "Auth",
+                targetId: result.UserId,
+                targetName: result.Username,
+                userIdOverride: result.UserId,
+                userNameOverride: result.Username);
+
             return Ok(new
             {
                 Success = true,
-                Data = result,
+                Data = new
+                {
+                    Token = result.Token,
+                    User = new
+                    {
+                        Id = result.UserId,
+                        UserName = result.Username,
+                        FullName = result.FullName,
+                        Email = result.Email,
+                        Role = result.Role,
+                        UnitId = result.UnitId,
+                        UnitName = result.UnitName
+                    }
+                },
                 Message = "Đăng nhập thành công"
             });
         }
@@ -87,58 +106,138 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Login với Email/Username và Password
-    /// </summary>
-    [HttpPost("login-credentials")]
-    [AllowAnonymous]
-    public async Task<IActionResult> LoginWithCredentials([FromBody] LoginCredentialsRequest request)
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.EmailOrUsername) || string.IsNullOrWhiteSpace(request.Password))
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { Success = false, Message = "Không xác định được người dùng" });
+            }
+
+            var success = await _authService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+
+            if (!success)
             {
                 return BadRequest(new
                 {
                     Success = false,
-                    Message = "Vui lòng nhập email/tên đăng nhập và mật khẩu"
+                    Message = "Mật khẩu hiện tại không đúng"
                 });
             }
 
-            var result = await _authService.LoginWithCredentialsAsync(request);
-
-            if (result == null)
-            {
-                return BadRequest(new
-                {
-                    Success = false,
-                    Message = "Email/tên đăng nhập hoặc mật khẩu không đúng"
-                });
-            }
-
-            _logger.LogInformation("User {Username} logged in with credentials successfully", result.Username);
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "ChangePassword",
+                targetType: "User",
+                targetId: userId);
 
             return Ok(new
             {
                 Success = true,
-                Data = result,
-                Message = "Đăng nhập thành công"
+                Message = "Đổi mật khẩu thành công"
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login with credentials");
+            _logger.LogError(ex, "Error changing password");
             return StatusCode(500, new
             {
                 Success = false,
-                Message = "Lỗi khi đăng nhập"
+                Message = "Lỗi khi đổi mật khẩu"
             });
         }
     }
 
-    /// <summary>
-    /// Lấy thông tin user hiện tại
-    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            int? userId = null;
+            if (int.TryParse(userIdClaim, out var parsedId))
+            {
+                userId = parsedId;
+            }
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "Logout",
+                targetType: "Auth",
+                targetId: userId,
+                targetName: username,
+                userIdOverride: userId,
+                userNameOverride: username);
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Đăng xuất thành công"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Lỗi khi đăng xuất"
+            });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        try
+        {
+            var success = await _authService.ResetPasswordAsync(request.UserId, request.NewPassword);
+
+            if (!success)
+            {
+                return BadRequest(new
+                {
+                    Success = false,
+                    Message = "Không tìm thấy người dùng"
+                });
+            }
+
+            _logger.LogInformation("Password reset for user {UserId}", request.UserId);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "ResetPassword",
+                targetType: "User",
+                targetId: request.UserId);
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Đặt lại mật khẩu thành công"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password");
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Lỗi khi đặt lại mật khẩu"
+            });
+        }
+    }
+
     [HttpGet("me")]
     [Authorize]
     public IActionResult GetCurrentUser()
@@ -180,4 +279,69 @@ public class AuthController : ControllerBase
             });
         }
     }
+
+    [HttpPost("seed-passwords")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SeedPasswords([FromBody] SeedPasswordsRequest request)
+    {
+        if (request.SecretKey != "SSMS-SEED-2024")
+        {
+            return BadRequest(new { Success = false, Message = "Invalid secret key" });
+        }
+
+        try
+        {
+            var users = await _authService.GetUsersAsync();
+            var count = 0;
+
+            foreach (var user in users)
+            {
+                var success = await _authService.ResetPasswordAsync(user.Id, request.DefaultPassword);
+                if (success) count++;
+            }
+
+            _logger.LogInformation("Seeded passwords for {Count} users", count);
+
+            await AuditLogHelper.LogAsync(
+                _auditLogService,
+                HttpContext,
+                action: "SeedPasswords",
+                targetType: "User",
+                detail: $"UsersUpdated={count}");
+
+            return Ok(new
+            {
+                Success = true,
+                Message = $"Đã đặt mật khẩu cho {count} người dùng",
+                Data = new { UsersUpdated = count }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeding passwords");
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Lỗi khi đặt mật khẩu"
+            });
+        }
+    }
+}
+
+public class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class ResetPasswordRequest
+{
+    public int UserId { get; set; }
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class SeedPasswordsRequest
+{
+    public string SecretKey { get; set; } = string.Empty;
+    public string DefaultPassword { get; set; } = "Admin@123";
 }
