@@ -23,10 +23,8 @@ function Get-ComposeCommand {
         return "docker-compose"
     }
 
-    $composeCheck = & docker compose version 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        return "docker compose"
-    }
+    cmd /c "docker compose version >nul 2>nul"
+    if ($LASTEXITCODE -eq 0) { return "docker compose" }
 
     Write-Log "Docker Compose not found. Install docker-compose or Docker Desktop" "ERROR"
     exit 1
