@@ -139,6 +139,11 @@ public class RoleService : IRoleService
             throw new KeyNotFoundException($"Không tìm thấy vai trò với ID {id}");
         }
 
+        if (role.IsSystemRole)
+        {
+            throw new InvalidOperationException("Không thể cập nhật vai trò hệ thống");
+        }
+
         role.Name = dto.Name;
         role.Description = dto.Description;
         role.UpdatedAt = DateTime.UtcNow;

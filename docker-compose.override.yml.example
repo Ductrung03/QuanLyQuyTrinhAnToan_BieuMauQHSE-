@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    ports:
+      - "1433:1433"
+    environment:
+      - MSSQL_PID=Developer
+
+  api:
+    build:
+      args:
+        BUILD_CONFIGURATION: Debug
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Serilog__MinimumLevel__Default=Debug
+    ports:
+      - "5000:80"
+    volumes:
+      - ./backend/src/SSMS.API:/app:ro
+      - api-uploads:/app/uploads
+      - api-logs:/app/logs
+
+  web:
+    ports:
+      - "8080:80"
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80

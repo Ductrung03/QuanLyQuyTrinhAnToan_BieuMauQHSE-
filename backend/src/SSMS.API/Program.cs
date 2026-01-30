@@ -268,6 +268,21 @@ app.MapGet("/health", () => Results.Ok(new
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    // Apply migrations on startup (for Docker deployment)
+    try
+    {
+        Log.Information("Applying database migrations...");
+        dbContext.Database.Migrate();
+        Log.Information("Database migrations applied successfully");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Error applying database migrations");
+        throw;
+    }
+    
     RuntimeSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
 }
 

@@ -95,5 +95,11 @@ Temp/
 ehthumbs.db
 Thumbs.db
 
-
+# Docker & Deployment
+docker-compose.override.yml
+nginx/ssl/*.crt
+nginx/ssl/*.key
+nginx/ssl/*.pem
+backups/
+*.bak
 
