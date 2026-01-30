@@ -9,6 +9,8 @@
 
 ## 🚀 Quick Start
 
+If you already cloned the repo on the server, run: `scripts/deploy.ps1`
+
 ### 1. Copy environment file
 ```bash
 cp .env.example .env
