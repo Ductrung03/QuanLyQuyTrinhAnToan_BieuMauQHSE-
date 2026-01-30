@@ -1,5 +1,5 @@
 param(
-    [string]$TargetPath = "C:\SSMS"
+    [string]$TargetPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,10 +51,14 @@ Write-Log "Checking prerequisites..."
 Assert-Command "git"
 Assert-Command "docker"
 
+if ([string]::IsNullOrWhiteSpace($TargetPath)) {
+    $TargetPath = Get-Location
+}
+
 Write-Log "Using existing repository at: $TargetPath"
-if (-not (Test-Path "$TargetPath\.git")) {
+if (-not (Test-Path (Join-Path $TargetPath ".git"))) {
     Write-Log "Repository not found at $TargetPath" "ERROR"
-    Write-Log "Please clone the repository first, then re-run this script" "ERROR"
+    Write-Log "Please run from the repo folder or pass -TargetPath" "ERROR"
     exit 1
 }
 
