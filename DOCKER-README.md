@@ -28,6 +28,11 @@ Edit `.env` and change:
 docker compose build
 ```
 
+If `docker compose` is not available, use:
+```bash
+docker-compose build
+```
+
 **Note**: If pull fails for .NET SDK, use:
 ```bash
 docker pull --platform linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0
@@ -36,6 +41,11 @@ docker pull --platform linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0
 ### 4. Start all services
 ```bash
 docker compose up -d
+```
+
+If `docker compose` is not available, use:
+```bash
+docker-compose up -d
 ```
 
 ### 5. Verify deployment

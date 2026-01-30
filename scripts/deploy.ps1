@@ -18,6 +18,20 @@ function Assert-Command {
     }
 }
 
+function Get-ComposeCommand {
+    if (Get-Command "docker-compose" -ErrorAction SilentlyContinue) {
+        return "docker-compose"
+    }
+
+    $composeCheck = & docker compose version 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        return "docker compose"
+    }
+
+    Write-Log "Docker Compose not found. Install docker-compose or Docker Desktop" "ERROR"
+    exit 1
+}
+
 function Set-EnvValue {
     param(
         [string]$FilePath,
@@ -50,6 +64,7 @@ function Set-EnvValue {
 Write-Log "Checking prerequisites..."
 Assert-Command "git"
 Assert-Command "docker"
+$composeCommand = Get-ComposeCommand
 
 if ([string]::IsNullOrWhiteSpace($TargetPath)) {
     $TargetPath = Get-Location
@@ -84,13 +99,21 @@ Set-EnvValue -FilePath ".env" -Key "WEB_HTTP_PORT" -Value $webPort
 Set-EnvValue -FilePath ".env" -Key "JWT_SECRET" -Value $jwtSecret
 
 Write-Log "Building docker images..."
-docker compose build
+& $composeCommand build
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "Docker build failed" "ERROR"
+    exit 1
+}
 
 Write-Log "Starting services..."
-docker compose up -d
+& $composeCommand up -d
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "Docker startup failed" "ERROR"
+    exit 1
+}
 
 Write-Log "Deployment completed"
-Write-Log "Check status: docker compose ps"
+Write-Log "Check status: $composeCommand ps"
 Write-Log "Web: http://localhost:$webPort"
 Write-Log "API health: docker exec ssms-api curl http://localhost:8080/health"
 
